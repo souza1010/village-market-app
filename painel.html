@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Village Market — Painel</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#12594A">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gabarito:wght@500;600;700;800&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#F2F5F1;
+  --surface:#FFFFFF;
+  --surface-2:#E9EFEA;
+  --ink:#0C1D19;
+  --muted:#5E6E69;
+  --faint:#8A9A95;
+  --line:#D5DFD8;
+  --brand:#12594A;
+  --brand-soft:#DDEBE4;
+  --amber:#C97A12;
+  --amber-soft:#FBEBD2;
+  --bar:#E08A1E;
+  --ok:#17795F;
+  --erro:#B23A2B;
+  --shadow:0 1px 2px rgba(12,29,25,.05), 0 10px 30px -18px rgba(12,29,25,.28);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --ground:#081311; --surface:#101E1A; --surface-2:#17261F;
+    --ink:#E9F0EA; --muted:#98ABA5; --faint:#7A8D88; --line:#233630;
+    --brand:#4FB294; --brand-soft:#14302A;
+    --amber:#F0A845; --amber-soft:#2A2013; --bar:#F0A845;
+    --ok:#4FB294; --erro:#E8705C;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.7);
+  }
+}
+
+*{box-sizing:border-box}
+/* sem isto, [hidden] perde para classes que definem display (flex, grid...) */
+[hidden]{display:none !important}
+html,body{height:100%}
+body{margin:0; background:var(--ground); color:var(--ink);
+  font-family:"Instrument Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased;}
+h1,h2,h3{font-family:"Gabarito","Instrument Sans",sans-serif; margin:0;
+  line-height:1.1; letter-spacing:-.02em; text-wrap:balance}
+p{margin:0}
+a{color:var(--brand)}
+img{max-width:100%}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--bar); outline-offset:2px; border-radius:8px}
+
+.app{max-width:620px; margin:0 auto; padding-inline:18px; padding-block:0 120px}
+.wide-app{max-width:1060px}
+
+/* topo */
+.top{position:sticky; top:env(safe-area-inset-top,0px); z-index:20; background:var(--ground);
+  padding-block:16px 12px; border-bottom:1px solid var(--line)}
+.top-row{display:flex; align-items:center; justify-content:space-between; gap:12px}
+.brand{display:flex; align-items:center; gap:8px; font-family:"Gabarito",sans-serif;
+  font-weight:800; font-size:16px; letter-spacing:-.03em; text-decoration:none; color:var(--ink)}
+.brand i{font-style:normal; font-weight:500; color:var(--amber)}
+.mark{width:22px; height:22px; flex:none}
+.top-condo{font-size:12px; color:var(--muted); text-align:right; line-height:1.3}
+
+.progress{height:4px; background:var(--surface-2); border-radius:99px; margin-top:12px; overflow:hidden}
+.progress span{display:block; height:100%; background:var(--bar); border-radius:99px;
+  transition:width .3s ease; width:0}
+@media (prefers-reduced-motion: reduce){.progress span{transition:none}}
+
+/* telas */
+.screen{padding-top:26px}
+.step-label{font-size:11px; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--faint); margin-bottom:10px}
+h1{font-size:clamp(25px,5.4vw,32px); font-weight:700}
+h2{font-size:clamp(21px,4.4vw,27px); font-weight:700}
+.lead{margin-top:12px; color:var(--muted); font-size:16px}
+
+/* opções */
+.opts{display:grid; gap:9px; margin-top:22px}
+.opt{display:flex; align-items:center; gap:12px; width:100%; text-align:left; cursor:pointer;
+  background:var(--surface); border:1.5px solid var(--line); border-radius:15px; padding:15px 16px;
+  color:var(--ink); font-size:15.5px; transition:border-color .12s ease, background .12s ease}
+.opt:hover{border-color:var(--faint)}
+.opt[aria-pressed="true"]{border-color:var(--brand); background:var(--brand-soft)}
+.opt .tick{width:21px; height:21px; border-radius:7px; border:1.5px solid var(--line); flex:none;
+  display:grid; place-items:center; font-size:12px; color:transparent; background:var(--surface)}
+.opt[aria-pressed="true"] .tick{background:var(--brand); border-color:var(--brand); color:#fff}
+.opt .sub{display:block; font-size:13px; color:var(--muted); margin-top:2px}
+
+/* cesta */
+.budget{position:sticky; top:calc(env(safe-area-inset-top,0px) + 86px); z-index:15;
+  background:var(--surface); border:1px solid var(--line); border-radius:15px; padding:13px 16px;
+  margin-top:20px; box-shadow:var(--shadow)}
+.budget-row{display:flex; align-items:baseline; justify-content:space-between; gap:12px}
+.budget b{font-family:"Gabarito",sans-serif; font-size:23px; font-weight:700; font-variant-numeric:tabular-nums}
+.budget small{font-size:12.5px; color:var(--muted)}
+.meter{height:6px; background:var(--surface-2); border-radius:99px; margin-top:10px; overflow:hidden}
+.meter span{display:block; height:100%; background:var(--bar); border-radius:99px; transition:width .2s ease}
+.meter.over span{background:var(--erro)}
+
+.catlabel{font-size:11px; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--faint); margin:24px 0 10px}
+.grid{display:grid; grid-template-columns:repeat(2,1fr); gap:9px}
+.item{display:flex; flex-direction:column; gap:5px; text-align:left; cursor:pointer;
+  background:var(--surface); border:1.5px solid var(--line); border-radius:14px; padding:13px 14px;
+  color:var(--ink); font-size:14.5px; line-height:1.3; transition:border-color .12s ease, background .12s ease}
+.item:hover{border-color:var(--faint)}
+.item[aria-pressed="true"]{border-color:var(--brand); background:var(--brand-soft)}
+.item .preco{font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums}
+.item[aria-pressed="true"] .preco{color:var(--brand); font-weight:600}
+
+.outra-wrap{margin-top:9px}
+.faltou{margin-top:28px; background:var(--surface); border:1.5px dashed var(--line);
+  border-radius:15px; padding:17px 18px}
+.faltou b{display:block; font-size:15px; font-weight:700}
+.faltou span{display:block; font-size:13.5px; color:var(--muted); margin-top:4px}
+.faltou input{margin-top:11px}
+
+/* campos */
+.field{display:flex; flex-direction:column; gap:7px; margin-top:18px}
+.dupla{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+label{font-size:12.5px; font-weight:600; color:var(--muted)}
+input,select,textarea{font-family:inherit; font-size:16px; color:var(--ink); background:var(--surface);
+  border:1.5px solid var(--line); border-radius:13px; padding:13px 15px; width:100%}
+.consent{display:flex; gap:11px; align-items:flex-start; margin-top:18px; font-size:13px; color:var(--muted)}
+.consent input{width:18px; height:18px; flex:none; margin-top:2px; accent-color:var(--brand)}
+.pular{display:block; width:100%; margin-top:22px; background:transparent; border:none;
+  color:var(--muted); font-size:14px; text-decoration:underline; cursor:pointer; padding:10px}
+.miudas{margin-top:14px; font-size:11.5px; line-height:1.5; color:var(--faint); text-align:center}
+
+/* barra de ação */
+.actionbar{position:fixed; left:0; right:0; bottom:0; z-index:30;
+  padding:14px 18px calc(14px + env(safe-area-inset-bottom,0px));
+  background:color-mix(in srgb, var(--ground) 92%, transparent); backdrop-filter:blur(12px);
+  border-top:1px solid var(--line)}
+.actionbar-in{max-width:620px; margin:0 auto; display:flex; gap:10px; align-items:center}
+.btn{flex:1; display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  font-family:"Gabarito",sans-serif; font-weight:700; font-size:16px; padding:15px 22px;
+  border-radius:14px; border:1.5px solid transparent; cursor:pointer; text-decoration:none}
+.btn-primary{background:var(--brand); color:#fff}
+@media (prefers-color-scheme: dark){.btn-primary{color:#06120F}}
+.btn-primary[disabled]{opacity:.4; cursor:not-allowed}
+.btn-back{flex:none; width:52px; background:var(--surface); border-color:var(--line);
+  color:var(--muted); font-size:19px}
+.btn-ghost{background:var(--surface); border-color:var(--line); color:var(--ink)}
+.btn-sm{flex:none; padding:10px 16px; font-size:14px; border-radius:11px}
+
+/* fim */
+.done-mark{width:62px; height:62px; border-radius:50%; background:var(--brand-soft); color:var(--brand);
+  display:grid; place-items:center; font-size:29px; margin-bottom:22px}
+.recap{background:var(--surface); border:1px solid var(--line); border-radius:17px; padding:20px;
+  margin-top:24px; box-shadow:var(--shadow)}
+.recap h3{font-size:14px; font-weight:700; margin-bottom:12px}
+.recap ul{margin:0; padding-left:19px; color:var(--muted); font-size:14.5px}
+.recap li{margin-bottom:5px}
+
+.cupom-teaser{display:flex; gap:12px; align-items:flex-start; margin-top:22px;
+  background:var(--amber-soft); border:1px solid rgba(201,122,18,.3); border-radius:15px; padding:15px 16px}
+.cupom-teaser b{display:block; font-size:15px; color:var(--amber)}
+.cupom-teaser span:last-child{display:block; font-size:13.5px; color:var(--muted); margin-top:3px}
+
+.cupom{margin-top:24px; border:1.5px dashed var(--amber); border-radius:18px; padding:22px;
+  background:var(--amber-soft); text-align:center}
+.cupom-top{font-size:13px; font-weight:600; color:var(--amber)}
+.cupom-cod{font-family:"Gabarito",sans-serif; font-size:clamp(26px,6vw,34px); font-weight:800;
+  letter-spacing:.05em; margin-top:10px; color:var(--ink)}
+.cupom-contador{margin-top:11px; font-size:12.5px; font-weight:600; color:var(--muted)}
+.cupom-repetido{margin-top:12px; font-size:13px; font-weight:600; color:var(--amber);
+  background:var(--surface); border:1px solid rgba(201,122,18,.3); border-radius:11px; padding:10px 13px}
+.cupom-btn{margin-top:14px; border:1.5px solid var(--line); background:var(--surface); color:var(--ink);
+  font-family:"Gabarito",sans-serif; font-weight:700; font-size:14.5px; padding:11px 22px;
+  border-radius:12px; cursor:pointer}
+.cupom-fine{margin-top:14px; font-size:12.5px; color:var(--muted); line-height:1.45}
+.sem-cupom{margin-top:24px; border:1px solid var(--line); border-radius:15px; padding:18px;
+  background:var(--surface-2); font-size:14.5px; color:var(--muted)}
+
+/* avisos */
+.aviso{display:flex; gap:10px; align-items:flex-start; border-radius:13px; padding:13px 15px;
+  font-size:13.5px; margin-top:20px; line-height:1.45}
+.aviso-erro{background:var(--surface); border:1px solid var(--erro); color:var(--ink)}
+.aviso-info{background:var(--amber-soft); border:1px solid rgba(201,122,18,.28); color:var(--ink)}
+.aviso b{color:var(--amber)}
+.aviso-erro b{color:var(--erro)}
+
+/* promoção */
+.promo{margin-top:20px; background:var(--brand); color:#fff; border-radius:16px; padding:18px 20px}
+@media (prefers-color-scheme: dark){.promo{color:#06120F}}
+.promo b{display:block; font-family:"Gabarito",sans-serif; font-size:17px; font-weight:700}
+.promo span{display:block; font-size:14px; opacity:.88; margin-top:5px}
+
+/* instalar */
+.instalar{margin-top:20px; display:flex; gap:12px; align-items:center; justify-content:space-between;
+  background:var(--surface); border:1px solid var(--line); border-radius:15px; padding:14px 16px}
+.instalar p{font-size:13.5px; color:var(--muted)}
+
+</style>
+<style>
+  .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:11px; margin-top:20px}
+  .kpi{background:var(--surface); border:1px solid var(--line); border-radius:15px;
+    padding:17px 16px; box-shadow:var(--shadow)}
+  .kpi b{display:block; font-family:"Gabarito",sans-serif; font-size:clamp(20px,3.4vw,27px);
+    font-weight:700; letter-spacing:-.03em; line-height:1; font-variant-numeric:tabular-nums}
+  .kpi span{display:block; margin-top:8px; font-size:11.5px; color:var(--muted); line-height:1.35}
+  .block{background:var(--surface); border:1px solid var(--line); border-radius:19px;
+    padding:22px; margin-top:20px; box-shadow:var(--shadow)}
+  .block h3{font-size:17px; font-weight:700}
+  .block .sub{font-size:13.5px; color:var(--muted); margin-top:5px}
+  .bars{margin-top:20px; display:grid; gap:9px}
+  .bar-row{display:grid; grid-template-columns:minmax(0,1fr) 52px; gap:12px; align-items:center; padding:2px 0}
+  .bar-name{font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .bar-val{font-size:13px; color:var(--muted); text-align:right; font-variant-numeric:tabular-nums}
+  .bar-track{grid-column:1/-1; height:9px; background:var(--surface-2); border-radius:99px;
+    overflow:hidden; margin-top:-4px}
+  .bar-fill{display:block; height:100%; background:var(--bar); border-radius:99px}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:16px}
+  .chip{display:inline-flex; align-items:center; gap:8px; background:var(--surface-2);
+    border:1px solid var(--line); border-radius:999px; padding:7px 14px; font-size:13.5px}
+  .chip b{font-weight:700; color:var(--amber); font-variant-numeric:tabular-nums}
+  .tablewrap{overflow-x:auto; margin-top:18px; border:1px solid var(--line); border-radius:14px}
+  table{width:100%; border-collapse:collapse; font-size:14px; min-width:560px}
+  th,td{text-align:left; padding:12px 15px; border-bottom:1px solid var(--line)}
+  tbody tr:last-child td{border-bottom:none}
+  th{font-size:11px; font-weight:600; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--faint); background:var(--surface-2)}
+  td.num{font-variant-numeric:tabular-nums; color:var(--muted)}
+  .pri{display:inline-flex; font-size:12px; font-weight:600; padding:4px 10px; border-radius:99px}
+  .pri-a{background:var(--brand-soft); color:var(--brand)}
+  .pri-b{background:var(--surface-2); color:var(--muted)}
+  .barra-topo{display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;
+    justify-content:space-between; margin-top:24px}
+  .acoes{display:flex; gap:9px; flex-wrap:wrap}
+  .login{max-width:420px; margin:70px auto; text-align:center}
+  @media (max-width:640px){ .kpis{grid-template-columns:repeat(2,1fr)} }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="app wide-app" style="padding-block:0">
+    <div class="top-row">
+      <a class="brand" href="./">
+        <svg class="mark" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 1.6 L22.6 10 V20.6 a1.9 1.9 0 0 1-1.9 1.9 H3.3 a1.9 1.9 0 0 1-1.9-1.9 V10 Z" fill="var(--brand)"/>
+          <rect x="9" y="12.2" width="6" height="6" rx="1.2" fill="var(--bar)"/>
+        </svg>
+        Village <i>Market</i> · Painel
+      </a>
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-sair" hidden>Sair</button>
+    </div>
+  </div>
+</div>
+
+<div class="app wide-app" id="tela-login" hidden>
+  <div class="login">
+    <h2>Entrar no painel</h2>
+    <p class="lead">Enviamos um link de acesso para o seu e-mail. Não precisa de senha.</p>
+    <div class="field">
+      <label for="f-email">Seu e-mail</label>
+      <input id="f-email" type="email" placeholder="voce@exemplo.com" autocomplete="email">
+    </div>
+    <button type="button" class="btn btn-primary" id="btn-entrar" style="margin-top:18px">Receber link de acesso</button>
+    <p class="lead" id="login-msg" style="font-size:14px"></p>
+  </div>
+</div>
+
+<div class="app wide-app" id="tela-painel" hidden>
+
+  <div class="barra-topo">
+    <div style="flex:1; min-width:240px">
+      <h2>Resultado por condomínio</h2>
+      <p class="sub" style="color:var(--muted); font-size:14px; margin-top:6px">
+        O que os moradores pediram e o que isso vira na lista de compras.</p>
+    </div>
+    <div class="field" style="margin:0; min-width:250px">
+      <label for="sel-condo">Condomínio</label>
+      <select id="sel-condo"></select>
+    </div>
+  </div>
+
+  <div class="acoes" style="margin-top:14px">
+    <button type="button" class="btn btn-ghost btn-sm" id="btn-csv">Baixar respostas (CSV)</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="btn-cupons">Baixar cupons (CSV)</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="btn-zaps">Copiar WhatsApps</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="btn-link">Copiar link da enquete</button>
+  </div>
+
+  <div id="vazio" class="aviso aviso-info" hidden>
+    <span aria-hidden="true">📋</span>
+    <div><b>Ainda não há respostas neste condomínio.</b> Cole o link da enquete no grupo do prédio
+    ou imprima o QR e coloque no elevador.</div>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="block">
+    <h3>Produtos mais pedidos</h3>
+    <p class="sub">Ponderado pelo que cada morador realmente colocou na cesta de R$ 100.</p>
+    <div class="bars" id="bars-produtos"></div>
+  </div>
+
+  <div class="block">
+    <h3>Marcas que os moradores fazem questão</h3>
+    <p class="sub">Trocar a marca vencedora por uma mais barata costuma derrubar o giro.</p>
+    <div class="chips" id="chips-marcas"></div>
+  </div>
+
+  <div class="block">
+    <h3>Pedido pelos moradores, mas fora da nossa lista</h3>
+    <p class="sub">O que as pessoas digitaram à mão. É aqui que aparece a marca regional.</p>
+    <div class="chips" id="chips-escritos"></div>
+  </div>
+
+  <div class="block">
+    <h3>Lista de abastecimento sugerida</h3>
+    <p class="sub">É essa lista que você leva pro fornecedor na primeira compra deste condomínio.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th scope="col">Produto</th><th scope="col">Pedidos</th>
+          <th scope="col">Qtd. inicial</th><th scope="col">Prioridade</th>
+        </tr></thead>
+        <tbody id="tbody-lista"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="block">
+    <h3>Cupons</h3>
+    <p class="sub">Digite um código para dar baixa na hora da compra.</p>
+    <div class="dupla" style="margin-top:14px">
+      <div class="field" style="margin:0">
+        <label for="f-cupom">Código</label>
+        <input id="f-cupom" type="text" placeholder="VM10-XXXXX" autocomplete="off">
+      </div>
+      <div class="field" style="margin:0; justify-content:flex-end">
+        <button type="button" class="btn btn-primary" id="btn-resgatar">Dar baixa</button>
+      </div>
+    </div>
+    <p class="lead" id="cupom-msg" style="font-size:14px"></p>
+  </div>
+
+  <div class="block">
+    <h3>Promoção no app</h3>
+    <p class="sub">Aparece como faixa na primeira tela de quem abrir a enquete deste condomínio.</p>
+    <div class="field">
+      <label for="f-promo-titulo">Título</label>
+      <input id="f-promo-titulo" type="text" placeholder="Cerveja gelada com 20% nesta semana">
+    </div>
+    <div class="field">
+      <label for="f-promo-texto">Texto (opcional)</label>
+      <input id="f-promo-texto" type="text" placeholder="Válido até domingo, enquanto durar o estoque">
+    </div>
+    <button type="button" class="btn btn-primary" id="btn-promo" style="margin-top:16px">Publicar promoção</button>
+    <p class="lead" id="promo-msg" style="font-size:14px"></p>
+  </div>
+
+</div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+/* ============================================================
+   Village Market — Painel da operação
+   ============================================================ */
+(function () {
+"use strict";
+
+var CFG = window.VM_CONFIG || {};
+var LIMITE_BARRAS = 12;
+var sb = null;
+var CONDOS = [];
+var ATUAL = null;
+var DADOS = { respostas: [], cupons: [] };
+
+function el(id) { return document.getElementById(id); }
+function brl(v) { return "R$ " + Number(v || 0).toFixed(2).replace(".", ","); }
+
+if (!CFG.SUPABASE_URL || !CFG.SUPABASE_ANON_KEY || !window.supabase) {
+  document.body.innerHTML =
+    '<div class="app" style="padding-top:60px"><div class="aviso aviso-erro">' +
+    '<span>⚠️</span><div><b>Falta configurar o Supabase.</b> Preencha SUPABASE_URL e ' +
+    'SUPABASE_ANON_KEY no arquivo config.js.</div></div></div>';
+  return;
+}
+sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+
+/* ---------- login por link mágico ---------- */
+async function verificarSessao() {
+  var s = await sb.auth.getSession();
+  if (s.data && s.data.session) {
+    el("tela-login").hidden = true;
+    el("tela-painel").hidden = false;
+    el("btn-sair").hidden = false;
+    carregarCondominios();
+  } else {
+    el("tela-login").hidden = false;
+    el("tela-painel").hidden = true;
+    el("btn-sair").hidden = true;
+  }
+}
+
+el("btn-entrar").addEventListener("click", async function () {
+  var email = el("f-email").value.trim();
+  if (!email) { el("f-email").focus(); return; }
+  this.disabled = true;
+  el("login-msg").textContent = "Enviando…";
+  var r = await sb.auth.signInWithOtp({
+    email: email,
+    options: { emailRedirectTo: location.href.split("#")[0] }
+  });
+  this.disabled = false;
+  el("login-msg").textContent = r.error
+    ? "Não deu certo: " + r.error.message
+    : "Pronto. Abra o link que chegou em " + email + ".";
+});
+
+el("btn-sair").addEventListener("click", async function () {
+  await sb.auth.signOut();
+  location.reload();
+});
+
+sb.auth.onAuthStateChange(function () { verificarSessao(); });
+
+/* ---------- dados ---------- */
+async function carregarCondominios() {
+  var r = await sb.from("condominios").select("id,slug,nome,cidade,unidades").order("nome");
+  if (r.error) return;
+  CONDOS = r.data || [];
+  var sel = el("sel-condo");
+  sel.textContent = "";
+  CONDOS.forEach(function (c) {
+    var o = document.createElement("option");
+    o.value = c.id;
+    o.textContent = c.nome + " · " + c.unidades + " un.";
+    sel.appendChild(o);
+  });
+  sel.addEventListener("change", function () { selecionar(this.value); });
+  if (CONDOS.length) selecionar(CONDOS[0].id);
+}
+
+async function selecionar(id) {
+  ATUAL = CONDOS.filter(function (c) { return c.id === id; })[0] || null;
+  if (!ATUAL) return;
+  var r1 = await sb.from("respostas").select("*")
+    .eq("condominio_id", id).order("criado_em", { ascending: false });
+  var r2 = await sb.from("cupons").select("*")
+    .eq("condominio_id", id).order("criado_em", { ascending: false });
+  DADOS.respostas = (r1.data || []);
+  DADOS.cupons = (r2.data || []);
+  render();
+}
+
+/* ---------- render ---------- */
+function render() {
+  var R = DADOS.respostas;
+  el("vazio").hidden = R.length > 0;
+
+  var querem = R.filter(function (r) { return r.quer === "muito" || r.quer === "sim"; }).length;
+  var comCesta = R.filter(function (r) { return Number(r.cesta_total) > 0; });
+  var cestaMedia = comCesta.length
+    ? comCesta.reduce(function (s, r) { return s + Number(r.cesta_total); }, 0) / comCesta.length : 0;
+  var resgatados = DADOS.cupons.filter(function (c) { return c.resgatado_em; }).length;
+  var pctQuer = R.length ? Math.round((querem / R.length) * 100) : 0;
+  var fatMes = Math.round((ATUAL.unidades || 0) * (pctQuer / 100) * cestaMedia);
+
+  var kpis = el("kpis"); kpis.textContent = "";
+  [
+    { v: R.length, l: "respostas de " + (ATUAL.unidades || "?") + " unidades" },
+    { v: pctQuer + "%", l: "querem o mercado no prédio" },
+    { v: brl(cestaMedia), l: "cesta mensal média declarada" },
+    { v: brl(fatMes), l: "faturamento mensal estimado, projeção conservadora" },
+    { v: DADOS.cupons.length, l: "cupons emitidos" },
+    { v: resgatados, l: "cupons já resgatados" },
+    { v: R.filter(function (r) { return r.cadastrou; }).length, l: "moradores cadastrados" },
+    { v: R.filter(function (r) { return r.whatsapp; }).length, l: "WhatsApps coletados" }
+  ].forEach(function (k) {
+    var d = document.createElement("div"); d.className = "kpi";
+    var b = document.createElement("b"); b.textContent = k.v;
+    var s = document.createElement("span"); s.textContent = k.l;
+    d.appendChild(b); d.appendChild(s); kpis.appendChild(d);
+  });
+
+  /* produtos */
+  var contagem = {};
+  R.forEach(function (r) {
+    (r.cesta || []).forEach(function (p) {
+      contagem[p.nome] = (contagem[p.nome] || 0) + 1;
+    });
+  });
+  var lista = Object.keys(contagem).map(function (n) { return { n: n, v: contagem[n] }; })
+    .sort(function (a, b) { return b.v - a.v; });
+
+  var bars = el("bars-produtos"); bars.textContent = "";
+  var max = lista.length ? lista[0].v : 1;
+  lista.slice(0, LIMITE_BARRAS).forEach(function (p) {
+    var row = document.createElement("div");
+    row.className = "bar-row";
+    row.title = p.n + ": " + p.v + " de " + R.length + " moradores";
+    var nm = document.createElement("div"); nm.className = "bar-name"; nm.textContent = p.n;
+    var vl = document.createElement("div"); vl.className = "bar-val"; vl.textContent = p.v;
+    var tr = document.createElement("div"); tr.className = "bar-track";
+    var fi = document.createElement("span"); fi.className = "bar-fill";
+    fi.style.width = Math.round((p.v / max) * 100) + "%";
+    tr.appendChild(fi);
+    row.appendChild(nm); row.appendChild(vl); row.appendChild(tr);
+    bars.appendChild(row);
+  });
+
+  /* marcas */
+  var marcas = {};
+  R.forEach(function (r) {
+    var m = r.marcas || {};
+    Object.keys(m).forEach(function (g) {
+      (m[g] || []).forEach(function (nome) {
+        if (nome === "Tanto faz") return;
+        var txt = nome === "Outra marca"
+          ? ((r.marcas_outra || {})[g] || "").trim() : nome;
+        if (!txt) return;
+        marcas[txt] = (marcas[txt] || 0) + 1;
+      });
+    });
+  });
+  chips("chips-marcas", marcas, "Nenhuma marca marcada ainda.");
+
+  /* escritos à mão */
+  var escritos = {};
+  R.forEach(function (r) {
+    var t = (r.faltou || "").trim();
+    if (!t) return;
+    t.split(/[,;\n]+/).forEach(function (parte) {
+      var k = parte.trim();
+      if (k.length < 2) return;
+      escritos[k] = (escritos[k] || 0) + 1;
+    });
+  });
+  chips("chips-escritos", escritos, "Ninguém escreveu pedidos ainda.");
+
+  /* lista de abastecimento */
+  var tb = el("tbody-lista"); tb.textContent = "";
+  lista.slice(0, 20).forEach(function (p, i) {
+    var tr = document.createElement("tr");
+    function td(t, cls) { var x = document.createElement("td"); if (cls) x.className = cls; x.textContent = t; return x; }
+    tr.appendChild(td(p.n));
+    tr.appendChild(td(String(p.v), "num"));
+    tr.appendChild(td(String(Math.max(6, Math.round(p.v * 0.35))), "num"));
+    var tdp = document.createElement("td");
+    var sp = document.createElement("span");
+    sp.className = "pri " + (i < 5 ? "pri-a" : "pri-b");
+    sp.textContent = i < 5 ? "Essencial" : "Complementar";
+    tdp.appendChild(sp); tr.appendChild(tdp);
+    tb.appendChild(tr);
+  });
+}
+
+function chips(alvo, mapa, vazioTxt) {
+  var box = el(alvo); box.textContent = "";
+  var itens = Object.keys(mapa).map(function (k) { return { t: k, v: mapa[k] }; })
+    .sort(function (a, b) { return b.v - a.v; }).slice(0, 24);
+  if (!itens.length) {
+    var p = document.createElement("p");
+    p.className = "sub"; p.style.color = "var(--muted)"; p.textContent = vazioTxt;
+    box.appendChild(p); return;
+  }
+  itens.forEach(function (i) {
+    var d = document.createElement("span"); d.className = "chip";
+    var t = document.createElement("span"); t.textContent = i.t;
+    var v = document.createElement("b"); v.textContent = i.v;
+    d.appendChild(t); d.appendChild(v); box.appendChild(d);
+  });
+}
+
+/* ---------- exportar ---------- */
+function baixarCSV(nome, linhas) {
+  var csv = linhas.map(function (l) {
+    return l.map(function (c) {
+      var t = c === null || c === undefined ? "" : String(c);
+      return '"' + t.replace(/"/g, '""') + '"';
+    }).join(";");
+  }).join("\r\n");
+  var blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = nome;
+  document.body.appendChild(a); a.click();
+  setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+
+el("btn-csv").addEventListener("click", function () {
+  var linhas = [["data", "nome", "bloco", "ap", "whatsapp", "quer", "frequencia",
+                 "cesta_total", "itens", "marcas", "pedido_extra", "cupom"]];
+  DADOS.respostas.forEach(function (r) {
+    var marcas = [];
+    Object.keys(r.marcas || {}).forEach(function (g) {
+      (r.marcas[g] || []).forEach(function (m) {
+        marcas.push(m === "Outra marca" ? ((r.marcas_outra || {})[g] || "outra") : m);
+      });
+    });
+    linhas.push([
+      new Date(r.criado_em).toLocaleString("pt-BR"),
+      r.nome, r.bloco, r.ap, r.whatsapp, r.quer, r.freq,
+      String(r.cesta_total).replace(".", ","),
+      (r.cesta || []).map(function (p) { return p.nome; }).join(" | "),
+      marcas.join(" | "), r.faltou, r.cupom
+    ]);
+  });
+  baixarCSV("respostas-" + ATUAL.slug + ".csv", linhas);
+});
+
+el("btn-cupons").addEventListener("click", function () {
+  var linhas = [["codigo", "nome", "bloco", "ap", "whatsapp", "emitido_em", "resgatado_em"]];
+  DADOS.cupons.forEach(function (c) {
+    linhas.push([c.codigo, c.nome, c.bloco, c.ap, c.whatsapp,
+      new Date(c.criado_em).toLocaleString("pt-BR"),
+      c.resgatado_em ? new Date(c.resgatado_em).toLocaleString("pt-BR") : ""]);
+  });
+  baixarCSV("cupons-" + ATUAL.slug + ".csv", linhas);
+});
+
+el("btn-zaps").addEventListener("click", function () {
+  var zaps = DADOS.respostas.filter(function (r) { return r.whatsapp && r.lgpd; })
+    .map(function (r) { return r.whatsapp; });
+  var txt = zaps.join("\n");
+  var b = this;
+  var ok = function () {
+    b.textContent = zaps.length + " copiados";
+    setTimeout(function () { b.textContent = "Copiar WhatsApps"; }, 2000);
+  };
+  if (navigator.clipboard) navigator.clipboard.writeText(txt).then(ok, ok); else ok();
+});
+
+el("btn-link").addEventListener("click", function () {
+  var url = location.origin + location.pathname.replace(/painel\.html$/, "") + "?c=" + ATUAL.slug;
+  var b = this;
+  var ok = function () {
+    b.textContent = "Link copiado";
+    setTimeout(function () { b.textContent = "Copiar link da enquete"; }, 2000);
+  };
+  if (navigator.clipboard) navigator.clipboard.writeText(url).then(ok, ok); else ok();
+});
+
+/* ---------- cupons ---------- */
+el("btn-resgatar").addEventListener("click", async function () {
+  var cod = el("f-cupom").value.trim().toUpperCase();
+  if (!cod) { el("f-cupom").focus(); return; }
+  this.disabled = true;
+  var r = await sb.rpc("resgatar_cupom", { p_codigo: cod });
+  this.disabled = false;
+  var msg = el("cupom-msg");
+  if (r.error) { msg.textContent = "Erro ao consultar. Tente de novo."; return; }
+  var d = r.data || {};
+  if (d.ok) {
+    msg.textContent = "✓ Baixa dada. Cupom de " + d.nome + ", ap " + d.ap + ".";
+    el("f-cupom").value = "";
+    selecionar(ATUAL.id);
+  } else if (d.erro === "ja_resgatado") {
+    msg.textContent = "Este cupom já foi usado em " +
+      new Date(d.resgatado_em).toLocaleString("pt-BR") + " por " + d.nome + ".";
+  } else {
+    msg.textContent = "Código não encontrado.";
+  }
+});
+
+/* ---------- promoção ---------- */
+el("btn-promo").addEventListener("click", async function () {
+  var titulo = el("f-promo-titulo").value.trim();
+  if (!titulo) { el("f-promo-titulo").focus(); return; }
+  this.disabled = true;
+  await sb.from("promocoes").update({ ativa: false }).eq("condominio_id", ATUAL.id);
+  var r = await sb.from("promocoes").insert({
+    condominio_id: ATUAL.id,
+    titulo: titulo,
+    texto: el("f-promo-texto").value.trim() || null,
+    ativa: true
+  });
+  this.disabled = false;
+  el("promo-msg").textContent = r.error
+    ? "Não deu certo: " + r.error.message
+    : "Publicada. Já aparece para quem abrir a enquete deste condomínio.";
+  if (!r.error) { el("f-promo-titulo").value = ""; el("f-promo-texto").value = ""; }
+});
+
+verificarSessao();
+})();
+
+</script>
+</body>
+</html>

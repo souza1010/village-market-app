@@ -1,0 +1,16 @@
+{
+  "name": "Village Market — Cesta do Prédio",
+  "short_name": "Village Market",
+  "description": "Escolha o que vai ter no mercado 24h do seu condomínio.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F2F5F1",
+  "theme_color": "#12594A",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

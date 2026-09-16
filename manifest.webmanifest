@@ -1,8 +1,8 @@
 {
-  "name": "Village Market — Cesta do Prédio",
-  "short_name": "Village Market",
-  "description": "Escolha o que vai ter no mercado 24h do seu condomínio.",
-  "start_url": "./",
+  "name": "Village Market",
+  "short_name": "Village",
+  "description": "O mercado 24h do seu prédio: peça o que faltou, avise um problema e acompanhe seu cupom.",
+  "start_url": "./app.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
@@ -10,7 +10,27 @@
   "theme_color": "#12594A",
   "lang": "pt-BR",
   "icons": [
-    { "src": "icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+    {
+      "src": "icone.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icone-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icone-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icone-512-mascara.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }

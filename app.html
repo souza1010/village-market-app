@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Village Market</title>
+<meta name="description" content="O mercado do seu prédio: peça o que faltou, avise um problema e acompanhe seu cupom.">
+<meta name="theme-color" content="#12594A">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icone.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icone-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gabarito:wght@500;600;700;800&family=Instrument+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+
+<div class="top">
+  <div class="app" style="padding-block:0">
+    <div class="top-row">
+      <span class="brand">
+        <svg class="mark" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 1.6 L22.6 10 V20.6 a1.9 1.9 0 0 1-1.9 1.9 H3.3 a1.9 1.9 0 0 1-1.9-1.9 V10 Z" fill="var(--brand)"/>
+          <rect x="9" y="12.2" width="6" height="6" rx="1.2" fill="var(--bar)"/>
+        </svg>
+        Village <i>Market</i>
+      </span>
+      <div class="top-condo" id="top-condo">carregando…</div>
+    </div>
+  </div>
+</div>
+
+<div class="app tela-app">
+
+  <div id="aviso-condo" class="aviso aviso-erro" hidden>
+    <span aria-hidden="true">⚠️</span>
+    <div><b>Condomínio não encontrado.</b> Use o link ou o QR que está no seu prédio.</div>
+  </div>
+
+  <!-- ====== quem é você (bloco + ap) ====== -->
+  <section class="tabpane" id="pane-eu" hidden>
+    <div class="pane-head">
+      <h2>De qual apartamento você é?</h2>
+      <p>Só o bloco e o número. É o que liga seu pedido, seu protocolo e seu cupom — e o que impede alguém de votar cem vezes.</p>
+    </div>
+    <div class="dupla">
+      <div class="field">
+        <label for="eu-bloco">Bloco ou torre</label>
+        <input id="eu-bloco" type="text" placeholder="B" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="eu-ap">Apartamento</label>
+        <input id="eu-ap" type="text" inputmode="numeric" placeholder="302" autocomplete="off">
+      </div>
+    </div>
+    <div class="field">
+      <label for="eu-nome">Seu nome (opcional)</label>
+      <input id="eu-nome" type="text" placeholder="Maria Andrade" autocomplete="name">
+    </div>
+    <button type="button" class="btn btn-primary btn-cheio" id="eu-salvar">Salvar e continuar</button>
+    <p class="miudas">Fica guardado só neste celular. Não pedimos senha, e-mail nem documento.</p>
+  </section>
+
+  <!-- ====== INÍCIO ====== -->
+  <section class="tabpane" id="pane-inicio" hidden>
+    <div id="situacao-box"></div>
+    <div id="promo-box"></div>
+    <div class="euchip" id="euchip" hidden>
+      <span id="euchip-txt"></span>
+      <button type="button" id="euchip-trocar">trocar</button>
+    </div>
+
+    <div class="card">
+      <h3>O que mudou por causa dos moradores</h3>
+      <p class="cap">Pedidos que já viraram produto na prateleira.</p>
+      <div id="atendidos"></div>
+    </div>
+
+    <div class="card">
+      <h3>Ainda não respondeu a pesquisa?</h3>
+      <p class="cap">São 2 minutos e rende 10% de desconto na primeira compra.</p>
+      <a class="btn btn-ghost btn-cheio" id="link-pesquisa" href="./">Responder a pesquisa</a>
+    </div>
+
+    <div class="instalar" id="instalar" hidden>
+      <p>Instale na tela do celular para abrir num toque.</p>
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-instalar">Instalar</button>
+    </div>
+  </section>
+
+  <!-- ====== FALTOU ====== -->
+  <section class="tabpane" id="pane-faltou" hidden>
+    <div class="pane-head">
+      <h2>Faltou alguma coisa?</h2>
+      <p>Escreve o que você queria comprar e não tinha. Se outro vizinho já pediu igual, seu pedido soma no mesmo — é a soma que decide o que a gente compra.</p>
+    </div>
+
+    <div class="field">
+      <label for="p-texto">O que faltou</label>
+      <input id="p-texto" type="text" maxlength="120" placeholder="Ex: cerveja Therezópolis, fralda P, pão francês" autocomplete="off">
+    </div>
+    <button type="button" class="btn btn-primary btn-cheio" id="p-enviar">Pedir</button>
+    <p class="msg" id="p-msg"></p>
+
+    <div class="pane-head" style="margin-top:32px">
+      <h3 style="font-family:'Gabarito',sans-serif; font-size:17px; font-weight:700">O que o prédio está pedindo</h3>
+      <p style="font-size:14px">Toque no número para dizer que você também quer.</p>
+    </div>
+    <div class="rank" id="rank"></div>
+  </section>
+
+  <!-- ====== PROBLEMA ====== -->
+  <section class="tabpane" id="pane-problema" hidden>
+    <div class="pane-head">
+      <h2>Deu algum problema?</h2>
+      <p>Conta aqui. Você recebe um número de protocolo e acompanha a resposta dentro do app.</p>
+    </div>
+
+    <div class="cats" id="cats"></div>
+
+    <div class="field" id="campo-valor" hidden>
+      <label for="q-valor">Valor cobrado errado (R$)</label>
+      <input id="q-valor" type="text" inputmode="decimal" placeholder="25,80" autocomplete="off">
+    </div>
+
+    <div class="field">
+      <label for="q-texto">O que aconteceu</label>
+      <textarea id="q-texto" maxlength="800" placeholder="Conte com suas palavras. Dia, hora e o que aconteceu já ajudam bastante."></textarea>
+    </div>
+    <div class="field">
+      <label for="q-zap">WhatsApp para retorno (opcional)</label>
+      <input id="q-zap" type="tel" placeholder="(41) 99999-0000" autocomplete="tel">
+    </div>
+
+    <button type="button" class="btn btn-primary btn-cheio" id="q-enviar">Registrar problema</button>
+    <p class="msg" id="q-msg"></p>
+
+    <div id="q-resultado"></div>
+  </section>
+
+  <!-- ====== MEUS ====== -->
+  <section class="tabpane" id="pane-meus" hidden>
+    <div class="pane-head">
+      <h2>Meus</h2>
+      <p id="meus-sub">Seu cupom, seus pedidos e seus protocolos.</p>
+    </div>
+    <div id="meus-conteudo"></div>
+  </section>
+
+</div>
+
+<nav class="tabbar" aria-label="Seções do app">
+  <div class="tabbar-in" id="tabbar" role="tablist">
+    <button type="button" class="tab" role="tab" data-alvo="inicio" aria-selected="true">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/></svg>
+      Início
+    </button>
+    <button type="button" class="tab" role="tab" data-alvo="faltou" aria-selected="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.2l2.3 11.2a1.8 1.8 0 0 0 1.8 1.4h8.4a1.8 1.8 0 0 0 1.8-1.4L21 8H6"/><circle cx="9.5" cy="20" r="1.3"/><circle cx="17.5" cy="20" r="1.3"/><path d="M12.5 5.2v4.6M10.2 7.5h4.6"/></svg>
+      Faltou
+    </button>
+    <button type="button" class="tab" role="tab" data-alvo="problema" aria-selected="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.8 2.4 17.5a1.9 1.9 0 0 0 1.7 2.9h15.8a1.9 1.9 0 0 0 1.7-2.9L13.7 3.8a1.9 1.9 0 0 0-3.4 0Z"/><path d="M12 9.5v4"/><path d="M12 17h.01"/></svg>
+      Problema
+    </button>
+    <button type="button" class="tab" role="tab" data-alvo="meus" aria-selected="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8.5a1.5 1.5 0 0 1 1.5-1.5h14a1.5 1.5 0 0 1 1.5 1.5v2a2 2 0 0 0 0 4v2a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5v-2a2 2 0 0 0 0-4Z"/><path d="M14 8.5v9"/></svg>
+      Meus
+    </button>
+  </div>
+</nav>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+/* ============================================================
+   Village Market — o app do morador depois da pesquisa
+   Abas: Início · Faltou · Problema · Meus
+   ============================================================ */
+(function () {
+"use strict";
+
+var CFG  = window.VM_CONFIG || {};
+var SLUG = (new URLSearchParams(location.search).get("c") || "").trim();
+
+function el(id) { return document.getElementById(id); }
+function limpar(n) { while (n.firstChild) n.removeChild(n.firstChild); return n; }
+function txt(tag, cls, t) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (t !== undefined && t !== null) e.textContent = t;
+  return e;
+}
+function data(d) {
+  try { return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }); }
+  catch (e) { return ""; }
+}
+
+/* ---------- de qual apartamento é quem está usando ---------- */
+var EU = { bloco: "", ap: "", nome: "" };
+
+function chaveEu() { return "vm_eu_" + (SLUG || "x"); }
+
+function carregarEu() {
+  try {
+    var s = JSON.parse(localStorage.getItem(chaveEu()) || "null");
+    if (s && s.ap) EU = { bloco: s.bloco || "", ap: s.ap || "", nome: s.nome || "" };
+  } catch (e) {}
+  // quem acabou de responder a pesquisa já se identificou lá
+  if (!EU.ap) {
+    try {
+      var r = JSON.parse(localStorage.getItem("vm_rascunho_" + SLUG) || "null");
+      if (r && r.ap) EU = { bloco: r.bloco || "", ap: r.ap || "", nome: r.nome || "" };
+    } catch (e) {}
+  }
+}
+function salvarEu() {
+  try { localStorage.setItem(chaveEu(), JSON.stringify(EU)); } catch (e) {}
+}
+function temEu() { return !!(EU.ap || "").trim(); }
+
+/* SLUG: da URL, ou o último que este celular usou, ou o padrão */
+(function resolverSlug() {
+  if (!SLUG) { try { SLUG = localStorage.getItem("vm_condo") || ""; } catch (e) {} }
+  if (!SLUG) SLUG = (CFG.CONDOMINIO_PADRAO || "").trim();
+  try { if (SLUG) localStorage.setItem("vm_condo", SLUG); } catch (e) {}
+})();
+carregarEu();
+
+/* ---------- Supabase ---------- */
+var sb = null;
+if (CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY && window.supabase) {
+  sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+}
+var CONDO = null;
+
+async function rpc(nome, args) {
+  if (!sb) return { erro: "sem_conexao" };
+  try {
+    var r = await sb.rpc(nome, args);
+    if (r.error) return { erro: r.error.message || "falhou" };
+    return { dados: r.data };
+  } catch (e) {
+    return { erro: "sem_conexao" };
+  }
+}
+
+/* ---------- abas ---------- */
+var ABAS = ["inicio", "faltou", "problema", "meus"];
+var ABA = "inicio";
+
+function irPara(alvo, forcarIdent) {
+  // as abas que gravam algo precisam saber o apartamento
+  if (!temEu() && (forcarIdent || alvo === "faltou" || alvo === "problema" || alvo === "meus")) {
+    mostrarPane("eu");
+    PENDENTE = alvo;
+    marcarTab(alvo);
+    return;
+  }
+  ABA = alvo;
+  mostrarPane(alvo);
+  marcarTab(alvo);
+  if (alvo === "inicio")   renderInicio();
+  if (alvo === "faltou")   carregarRank();
+  if (alvo === "meus")     carregarMeus();
+  window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+var PENDENTE = null;
+
+function mostrarPane(nome) {
+  ["eu"].concat(ABAS).forEach(function (a) {
+    var p = el("pane-" + a);
+    if (p) p.hidden = (a !== nome);
+  });
+}
+function marcarTab(alvo) {
+  Array.prototype.forEach.call(el("tabbar").children, function (b) {
+    b.setAttribute("aria-selected", b.dataset.alvo === alvo ? "true" : "false");
+  });
+}
+
+Array.prototype.forEach.call(el("tabbar").children, function (b) {
+  b.addEventListener("click", function () { irPara(b.dataset.alvo); });
+});
+
+/* ---------- tela de identificação ---------- */
+el("eu-salvar").addEventListener("click", function () {
+  var ap = el("eu-ap").value.trim();
+  if (!ap) { el("eu-ap").focus(); return; }
+  EU.ap    = ap;
+  EU.bloco = el("eu-bloco").value.trim();
+  EU.nome  = el("eu-nome").value.trim();
+  salvarEu();
+  var destino = PENDENTE || "inicio";
+  PENDENTE = null;
+  irPara(destino);
+});
+
+el("euchip-trocar").addEventListener("click", function () {
+  el("eu-bloco").value = EU.bloco;
+  el("eu-ap").value = EU.ap;
+  el("eu-nome").value = EU.nome;
+  PENDENTE = "inicio";
+  mostrarPane("eu");
+  window.scrollTo({ top: 0, behavior: "instant" });
+});
+
+/* ---------- condomínio ---------- */
+var SITUACOES = {
+  pesquisa: { t: "Em pesquisa", s: "Ainda estamos ouvindo os moradores deste prédio. Sua resposta pesa na decisão.", c: "" },
+  aprovado: { t: "Aprovado pelo condomínio", s: "Deu certo: o mercado vem. Agora é acertar a obra e a data.", c: "" },
+  obras:    { t: "Em montagem", s: "As prateleiras já estão sendo montadas. Falta pouco.", c: "" },
+  aberto:   { t: "Aberto 24 horas", s: "Mercado funcionando. Qualquer problema, use a aba Problema.", c: "aberto" },
+  pausado:  { t: "Temporariamente fechado", s: "Estamos resolvendo. Volta em breve.", c: "pausado" }
+};
+
+async function carregarCondominio() {
+  if (!sb || !SLUG) { el("top-condo").textContent = "—"; return; }
+  try {
+    var r = await sb.from("condominios")
+      .select("id,slug,nome,cidade,unidades,status_mercado,aviso")
+      .eq("slug", SLUG).eq("ativo", true).maybeSingle();
+    if (r.error) throw r.error;
+    if (!r.data) { el("aviso-condo").hidden = false; el("top-condo").textContent = "—"; return; }
+    CONDO = r.data;
+    el("top-condo").textContent = CONDO.nome;
+    document.title = "Village Market — " + CONDO.nome;
+    el("link-pesquisa").href = "./?c=" + SLUG;
+  } catch (e) {
+    el("top-condo").textContent = "sem conexão";
+  }
+  renderInicio();
+}
+
+async function carregarPromocao() {
+  if (!sb || !CONDO) return;
+  try {
+    var r = await sb.from("promocoes").select("titulo,texto")
+      .or("condominio_id.is.null,condominio_id.eq." + CONDO.id)
+      .order("criado_em", { ascending: false }).limit(1);
+    if (r.error || !r.data || !r.data.length) return;
+    var p = r.data[0];
+    var box = limpar(el("promo-box"));
+    var d = txt("div", "promo");
+    d.appendChild(txt("b", null, p.titulo));
+    if (p.texto) d.appendChild(txt("span", null, p.texto));
+    box.appendChild(d);
+  } catch (e) {}
+}
+
+/* ---------- aba Início ---------- */
+function renderInicio() {
+  var box = limpar(el("situacao-box"));
+  if (CONDO) {
+    var s = SITUACOES[CONDO.status_mercado] || SITUACOES.pesquisa;
+    var d = txt("div", "situacao " + (s.c || ""));
+    d.appendChild(txt("span", "luz"));
+    var meio = txt("div");
+    meio.appendChild(txt("b", null, s.t));
+    meio.appendChild(txt("span", null, CONDO.aviso || s.s));
+    d.appendChild(meio);
+    box.appendChild(d);
+  }
+
+  var chip = el("euchip");
+  if (temEu()) {
+    chip.hidden = false;
+    el("euchip-txt").textContent = "Você: ap " + EU.ap + (EU.bloco ? " · bloco " + EU.bloco : "");
+  } else {
+    chip.hidden = true;
+  }
+
+  carregarPromocao();
+  carregarAtendidos();
+}
+
+async function carregarAtendidos() {
+  var box = limpar(el("atendidos"));
+  var r = await rpc("listar_pedidos", { p_slug: SLUG, p_bloco: EU.bloco, p_ap: EU.ap });
+  var lista = (r.dados || []).filter(function (p) {
+    return p.status === "comprado" || p.status === "analisando";
+  }).slice(0, 6);
+
+  if (!lista.length) {
+    var v = txt("div", "vazio");
+    v.appendChild(txt("em", null, "🧺"));
+    v.appendChild(document.createTextNode(
+      "Nada por aqui ainda. O que os moradores pedirem na aba Faltou aparece nesta lista quando entrar no estoque."));
+    box.appendChild(v);
+    return;
+  }
+  lista.forEach(function (p) {
+    var it = txt("div", "rank-item" + (p.status === "comprado" ? " atendido" : ""));
+    var t = txt("div", "rank-txt");
+    t.appendChild(txt("b", null, p.texto));
+    t.appendChild(txt("span", null, p.apoios + (p.apoios === 1 ? " morador pediu" : " moradores pediram")));
+    var selo = txt("span", "selo " + (p.status === "comprado" ? "ok" : "andamento"),
+      p.status === "comprado" ? "já está na prateleira" : "estamos comprando");
+    t.appendChild(selo);
+    if (p.resposta) {
+      var rp = txt("div", "meu-resp");
+      rp.appendChild(txt("b", null, "Village Market"));
+      rp.appendChild(document.createTextNode(p.resposta));
+      t.appendChild(rp);
+    }
+    it.appendChild(t);
+    box.appendChild(it);
+  });
+}
+
+/* ---------- aba Faltou ---------- */
+function msg(id, texto, tipo) {
+  var m = el(id);
+  m.textContent = texto || "";
+  m.className = "msg" + (tipo ? " " + tipo : "");
+}
+
+el("p-enviar").addEventListener("click", async function () {
+  var campo = el("p-texto");
+  var t = campo.value.trim();
+  if (t.length < 2) { campo.focus(); return; }
+  this.disabled = true;
+  msg("p-msg", "Enviando…");
+
+  var r = await rpc("registrar_pedido", {
+    p_slug: SLUG,
+    p_payload: { texto: t, bloco: EU.bloco, ap: EU.ap, nome: EU.nome }
+  });
+  this.disabled = false;
+
+  var d = r.dados;
+  if (r.erro || !d) { msg("p-msg", "Não deu para enviar agora. Tente de novo.", "erro"); return; }
+  if (d.ok === false) {
+    msg("p-msg", d.erro === "teto_diario"
+      ? "Você já mandou bastante coisa hoje. Amanhã libera de novo."
+      : "Não deu para enviar. Confira o texto.", "erro");
+    return;
+  }
+  campo.value = "";
+  msg("p-msg", d.novo
+    ? "Pedido registrado. Agora os vizinhos podem apoiar."
+    : "Esse pedido já existia — o seu somou nele. Agora são " + d.apoios + ".", "ok");
+  carregarRank();
+});
+
+el("p-texto").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") el("p-enviar").click();
+});
+
+async function carregarRank() {
+  var box = limpar(el("rank"));
+  box.appendChild(txt("div", "vazio", "Carregando…"));
+
+  var r = await rpc("listar_pedidos", { p_slug: SLUG, p_bloco: EU.bloco, p_ap: EU.ap });
+  limpar(box);
+  var lista = r.dados || [];
+
+  if (!lista.length) {
+    var v = txt("div", "vazio");
+    v.appendChild(txt("em", null, "📝"));
+    v.appendChild(document.createTextNode("Ninguém pediu nada ainda. Seja o primeiro — o que você escrever aqui vira lista de compras."));
+    box.appendChild(v);
+    return;
+  }
+
+  lista.forEach(function (p) {
+    var it = txt("div", "rank-item" + (p.status === "comprado" ? " atendido" : ""));
+
+    var t = txt("div", "rank-txt");
+    t.appendChild(txt("b", null, p.texto));
+    t.appendChild(txt("span", null, p.apoios + (p.apoios === 1 ? " morador" : " moradores")));
+    if (p.status === "comprado")  t.appendChild(txt("span", "selo ok", "já está na prateleira"));
+    if (p.status === "analisando") t.appendChild(txt("span", "selo andamento", "estamos comprando"));
+    it.appendChild(t);
+
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "rank-apoio";
+    b.setAttribute("aria-pressed", p.eu_apoiei ? "true" : "false");
+    b.setAttribute("aria-label", "Eu também quero " + p.texto);
+    b.appendChild(txt("span", null, String(p.apoios)));
+    b.appendChild(txt("small", null, p.eu_apoiei ? "eu quero" : "+ eu"));
+    b.addEventListener("click", async function () {
+      b.disabled = true;
+      var res = await rpc("apoiar_pedido", {
+        p_slug: SLUG, p_pedido: p.id, p_bloco: EU.bloco, p_ap: EU.ap
+      });
+      b.disabled = false;
+      var d = res.dados;
+      if (!d || d.ok === false) return;
+      p.eu_apoiei = d.apoiou;
+      p.apoios = d.apoios;
+      b.setAttribute("aria-pressed", d.apoiou ? "true" : "false");
+      limpar(b);
+      b.appendChild(txt("span", null, String(d.apoios)));
+      b.appendChild(txt("small", null, d.apoiou ? "eu quero" : "+ eu"));
+      var cont = it.querySelector(".rank-txt span");
+      if (cont) cont.textContent = d.apoios + (d.apoios === 1 ? " morador" : " moradores");
+    });
+    it.appendChild(b);
+
+    box.appendChild(it);
+  });
+}
+
+/* ---------- aba Problema ---------- */
+var CATS = [
+  { id: "maquina",  i: "🔌", n: "Máquina travou",        u: true  },
+  { id: "cobranca", i: "💳", n: "Cobrança errada",       u: true  },
+  { id: "vencido",  i: "⚠️", n: "Produto vencido",       u: true  },
+  { id: "falta",    i: "📦", n: "Prateleira vazia",      u: false },
+  { id: "preco",    i: "🏷️", n: "Preço diferente",       u: false },
+  { id: "limpeza",  i: "🧹", n: "Sujeira ou bagunça",    u: false },
+  { id: "acesso",   i: "🚪", n: "Não consegui entrar",   u: false },
+  { id: "outro",    i: "💬", n: "Outro assunto",         u: false }
+];
+var CAT = null;
+
+(function montarCats() {
+  var box = el("cats");
+  CATS.forEach(function (c) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "cat" + (c.u ? " urgente" : "");
+    b.setAttribute("aria-pressed", "false");
+    b.appendChild(txt("em", null, c.i));
+    b.appendChild(document.createTextNode(c.n));
+    b.addEventListener("click", function () {
+      CAT = c.id;
+      Array.prototype.forEach.call(box.children, function (x) { x.setAttribute("aria-pressed", "false"); });
+      b.setAttribute("aria-pressed", "true");
+      el("campo-valor").hidden = (c.id !== "cobranca");
+      msg("q-msg", "");
+    });
+    box.appendChild(b);
+  });
+})();
+
+function linkZap(protocolo, categoria, texto) {
+  var zap = (CFG.WHATSAPP || "").replace(/\D/g, "");
+  if (!zap) return null;
+  var nomeCat = (CATS.filter(function (c) { return c.id === categoria; })[0] || {}).n || categoria;
+  var corpo =
+    "*Village Market — protocolo " + protocolo + "*\n" +
+    (CONDO ? CONDO.nome + "\n" : "") +
+    "Ap " + EU.ap + (EU.bloco ? " · bloco " + EU.bloco : "") + "\n" +
+    nomeCat + "\n\n" + texto;
+  return "https://wa.me/" + zap + "?text=" + encodeURIComponent(corpo);
+}
+
+el("q-enviar").addEventListener("click", async function () {
+  if (!CAT) { msg("q-msg", "Escolha o tipo de problema acima.", "erro"); return; }
+  var t = el("q-texto").value.trim();
+  if (t.length < 5) { el("q-texto").focus(); msg("q-msg", "Conte um pouco mais do que aconteceu.", "erro"); return; }
+
+  this.disabled = true;
+  msg("q-msg", "Registrando…");
+
+  var valor = el("q-valor").value.trim().replace(/\./g, "").replace(",", ".");
+  var r = await rpc("registrar_problema", {
+    p_slug: SLUG,
+    p_payload: {
+      categoria: CAT, texto: t,
+      valor: (CAT === "cobranca" && valor) ? valor : null,
+      bloco: EU.bloco, ap: EU.ap, nome: EU.nome,
+      whatsapp: el("q-zap").value.trim()
+    }
+  });
+  this.disabled = false;
+
+  var d = r.dados;
+  if (r.erro || !d) { msg("q-msg", "Não deu para registrar agora. Tente de novo.", "erro"); return; }
+  if (d.ok === false) {
+    msg("q-msg", d.erro === "teto_diario"
+      ? "Você já registrou bastante coisa hoje. Se for urgente, chame no WhatsApp."
+      : "Confira os campos e tente de novo.", "erro");
+    return;
+  }
+
+  msg("q-msg", "");
+  var box = limpar(el("q-resultado"));
+  var p = txt("div", "protocolo");
+  p.appendChild(txt("small", null, "Protocolo"));
+  p.appendChild(txt("b", null, d.protocolo));
+  p.appendChild(txt("p", null, d.urgente
+    ? "Isso aqui é urgente. Avise a gente no WhatsApp agora que resolvemos hoje."
+    : "Registrado. A resposta aparece na aba Meus, com este número."));
+  var url = linkZap(d.protocolo, CAT, t);
+  if (url) {
+    var a = document.createElement("a");
+    a.className = "btn-zap";
+    a.href = url; a.target = "_blank"; a.rel = "noopener";
+    a.textContent = d.urgente ? "Avisar no WhatsApp agora" : "Mandar no WhatsApp também";
+    p.appendChild(a);
+  }
+  box.appendChild(p);
+
+  el("q-texto").value = "";
+  el("q-valor").value = "";
+  CAT = null;
+  Array.prototype.forEach.call(el("cats").children, function (x) { x.setAttribute("aria-pressed", "false"); });
+  el("campo-valor").hidden = true;
+  box.scrollIntoView({ behavior: "smooth", block: "center" });
+});
+
+/* ---------- aba Meus ---------- */
+var STATUS_PROB = {
+  aberto:    { t: "aberto",     c: "aberto" },
+  andamento: { t: "em andamento", c: "andamento" },
+  resolvido: { t: "resolvido",  c: "ok" }
+};
+var STATUS_PED = {
+  novo:       { t: "na fila",             c: "" },
+  analisando: { t: "estamos comprando",   c: "andamento" },
+  comprado:   { t: "já está na prateleira", c: "ok" },
+  recusado:   { t: "não vamos levar",     c: "" }
+};
+
+async function carregarMeus() {
+  var box = limpar(el("meus-conteudo"));
+  box.appendChild(txt("div", "vazio", "Carregando…"));
+
+  var r = await rpc("meus_registros", {
+    p_slug: SLUG, p_bloco: EU.bloco, p_ap: EU.ap, p_nome: null
+  });
+  limpar(box);
+  var d = r.dados;
+  if (!d || d.ok === false) {
+    box.appendChild(txt("div", "vazio", "Não deu para carregar agora. Tente de novo em instantes."));
+    return;
+  }
+
+  el("meus-sub").textContent = "Apartamento " + EU.ap + (EU.bloco ? ", bloco " + EU.bloco : "") + ".";
+
+  /* cupons */
+  var c1 = txt("div", "card");
+  c1.appendChild(txt("h3", null, "Cupons deste apartamento"));
+  c1.appendChild(txt("p", "cap", "Máximo de " + (d.limite_ap || 2) + " por unidade. Mostre o código na hora da compra."));
+  if (!d.cupons.length) {
+    c1.appendChild(txt("div", "vazio", "Nenhum cupom ainda. Responda a pesquisa para ganhar 10% na primeira compra."));
+  } else {
+    d.cupons.forEach(function (c) {
+      var m = txt("div", "meu");
+      var topo = txt("div", "meu-topo");
+      topo.appendChild(txt("span", "meu-cod", c.codigo));
+      topo.appendChild(txt("span", "meu-data", data(c.criado_em)));
+      m.appendChild(topo);
+      m.appendChild(txt("div", "meu-txt", c.nome));
+      m.appendChild(txt("span", "selo " + (c.resgatado_em ? "" : "ok"),
+        c.resgatado_em ? "já usado em " + data(c.resgatado_em) : "vale 10% na primeira compra"));
+      c1.appendChild(m);
+    });
+  }
+  box.appendChild(c1);
+
+  /* problemas */
+  var c2 = txt("div", "card");
+  c2.appendChild(txt("h3", null, "Problemas que você registrou"));
+  if (!d.problemas.length) {
+    c2.appendChild(txt("div", "vazio", "Nenhum. Melhor assim."));
+  } else {
+    d.problemas.forEach(function (p) {
+      var st = STATUS_PROB[p.status] || STATUS_PROB.aberto;
+      var m = txt("div", "meu");
+      var topo = txt("div", "meu-topo");
+      topo.appendChild(txt("span", "meu-cod", p.protocolo));
+      topo.appendChild(txt("span", "meu-data", data(p.criado_em)));
+      m.appendChild(topo);
+      m.appendChild(txt("div", "meu-txt", p.texto));
+      m.appendChild(txt("span", "selo " + st.c, st.t));
+      if (p.resposta) {
+        var rp = txt("div", "meu-resp");
+        rp.appendChild(txt("b", null, "Resposta"));
+        rp.appendChild(document.createTextNode(p.resposta));
+        m.appendChild(rp);
+      }
+      c2.appendChild(m);
+    });
+  }
+  box.appendChild(c2);
+
+  /* pedidos */
+  var c3 = txt("div", "card");
+  c3.appendChild(txt("h3", null, "O que você pediu"));
+  if (!d.pedidos.length) {
+    c3.appendChild(txt("div", "vazio", "Nada ainda. A aba Faltou é onde isso começa."));
+  } else {
+    d.pedidos.forEach(function (p) {
+      var st = STATUS_PED[p.status] || STATUS_PED.novo;
+      var m = txt("div", "meu");
+      var topo = txt("div", "meu-topo");
+      topo.appendChild(txt("span", "meu-cod", p.texto));
+      topo.appendChild(txt("span", "meu-data", p.apoios + "×"));
+      m.appendChild(topo);
+      m.appendChild(txt("span", "selo " + st.c, st.t));
+      if (p.resposta) {
+        var rp2 = txt("div", "meu-resp");
+        rp2.appendChild(txt("b", null, "Resposta"));
+        rp2.appendChild(document.createTextNode(p.resposta));
+        m.appendChild(rp2);
+      }
+      c3.appendChild(m);
+    });
+  }
+  box.appendChild(c3);
+}
+
+/* ---------- instalar ---------- */
+var promptInstalar = null;
+window.addEventListener("beforeinstallprompt", function (e) {
+  e.preventDefault();
+  promptInstalar = e;
+  el("instalar").hidden = false;
+});
+el("btn-instalar").addEventListener("click", async function () {
+  if (!promptInstalar) return;
+  promptInstalar.prompt();
+  await promptInstalar.userChoice;
+  promptInstalar = null;
+  el("instalar").hidden = true;
+});
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  });
+}
+
+/* ---------- início ---------- */
+irPara("inicio");
+carregarCondominio();
+})();
+
+</script>
+</body>
+</html>

@@ -9,195 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gabarito:wght@500;600;700;800&family=Instrument+Sans:wght@400;500;600&display=swap">
-<style>
-:root{
-  --ground:#F2F5F1;
-  --surface:#FFFFFF;
-  --surface-2:#E9EFEA;
-  --ink:#0C1D19;
-  --muted:#5E6E69;
-  --faint:#8A9A95;
-  --line:#D5DFD8;
-  --brand:#12594A;
-  --brand-soft:#DDEBE4;
-  --amber:#C97A12;
-  --amber-soft:#FBEBD2;
-  --bar:#E08A1E;
-  --ok:#17795F;
-  --erro:#B23A2B;
-  --shadow:0 1px 2px rgba(12,29,25,.05), 0 10px 30px -18px rgba(12,29,25,.28);
-}
-@media (prefers-color-scheme: dark){
-  :root{
-    --ground:#081311; --surface:#101E1A; --surface-2:#17261F;
-    --ink:#E9F0EA; --muted:#98ABA5; --faint:#7A8D88; --line:#233630;
-    --brand:#4FB294; --brand-soft:#14302A;
-    --amber:#F0A845; --amber-soft:#2A2013; --bar:#F0A845;
-    --ok:#4FB294; --erro:#E8705C;
-    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.7);
-  }
-}
-
-*{box-sizing:border-box}
-/* sem isto, [hidden] perde para classes que definem display (flex, grid...) */
-[hidden]{display:none !important}
-html,body{height:100%}
-body{margin:0; background:var(--ground); color:var(--ink);
-  font-family:"Instrument Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
-  font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased;}
-h1,h2,h3{font-family:"Gabarito","Instrument Sans",sans-serif; margin:0;
-  line-height:1.1; letter-spacing:-.02em; text-wrap:balance}
-p{margin:0}
-a{color:var(--brand)}
-img{max-width:100%}
-button{font-family:inherit}
-:focus-visible{outline:2px solid var(--bar); outline-offset:2px; border-radius:8px}
-
-.app{max-width:620px; margin:0 auto; padding-inline:18px; padding-block:0 120px}
-.wide-app{max-width:1060px}
-
-/* topo */
-.top{position:sticky; top:env(safe-area-inset-top,0px); z-index:20; background:var(--ground);
-  padding-block:16px 12px; border-bottom:1px solid var(--line)}
-.top-row{display:flex; align-items:center; justify-content:space-between; gap:12px}
-.brand{display:flex; align-items:center; gap:8px; font-family:"Gabarito",sans-serif;
-  font-weight:800; font-size:16px; letter-spacing:-.03em; text-decoration:none; color:var(--ink)}
-.brand i{font-style:normal; font-weight:500; color:var(--amber)}
-.mark{width:22px; height:22px; flex:none}
-.top-condo{font-size:12px; color:var(--muted); text-align:right; line-height:1.3}
-
-.progress{height:4px; background:var(--surface-2); border-radius:99px; margin-top:12px; overflow:hidden}
-.progress span{display:block; height:100%; background:var(--bar); border-radius:99px;
-  transition:width .3s ease; width:0}
-@media (prefers-reduced-motion: reduce){.progress span{transition:none}}
-
-/* telas */
-.screen{padding-top:26px}
-.step-label{font-size:11px; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
-  color:var(--faint); margin-bottom:10px}
-h1{font-size:clamp(25px,5.4vw,32px); font-weight:700}
-h2{font-size:clamp(21px,4.4vw,27px); font-weight:700}
-.lead{margin-top:12px; color:var(--muted); font-size:16px}
-
-/* opções */
-.opts{display:grid; gap:9px; margin-top:22px}
-.opt{display:flex; align-items:center; gap:12px; width:100%; text-align:left; cursor:pointer;
-  background:var(--surface); border:1.5px solid var(--line); border-radius:15px; padding:15px 16px;
-  color:var(--ink); font-size:15.5px; transition:border-color .12s ease, background .12s ease}
-.opt:hover{border-color:var(--faint)}
-.opt[aria-pressed="true"]{border-color:var(--brand); background:var(--brand-soft)}
-.opt .tick{width:21px; height:21px; border-radius:7px; border:1.5px solid var(--line); flex:none;
-  display:grid; place-items:center; font-size:12px; color:transparent; background:var(--surface)}
-.opt[aria-pressed="true"] .tick{background:var(--brand); border-color:var(--brand); color:#fff}
-.opt .sub{display:block; font-size:13px; color:var(--muted); margin-top:2px}
-
-/* cesta */
-.budget{position:sticky; top:calc(env(safe-area-inset-top,0px) + 86px); z-index:15;
-  background:var(--surface); border:1px solid var(--line); border-radius:15px; padding:13px 16px;
-  margin-top:20px; box-shadow:var(--shadow)}
-.budget-row{display:flex; align-items:baseline; justify-content:space-between; gap:12px}
-.budget b{font-family:"Gabarito",sans-serif; font-size:23px; font-weight:700; font-variant-numeric:tabular-nums}
-.budget small{font-size:12.5px; color:var(--muted)}
-.meter{height:6px; background:var(--surface-2); border-radius:99px; margin-top:10px; overflow:hidden}
-.meter span{display:block; height:100%; background:var(--bar); border-radius:99px; transition:width .2s ease}
-.meter.over span{background:var(--erro)}
-
-.catlabel{font-size:11px; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
-  color:var(--faint); margin:24px 0 10px}
-.grid{display:grid; grid-template-columns:repeat(2,1fr); gap:9px}
-.item{display:flex; flex-direction:column; gap:5px; text-align:left; cursor:pointer;
-  background:var(--surface); border:1.5px solid var(--line); border-radius:14px; padding:13px 14px;
-  color:var(--ink); font-size:14.5px; line-height:1.3; transition:border-color .12s ease, background .12s ease}
-.item:hover{border-color:var(--faint)}
-.item[aria-pressed="true"]{border-color:var(--brand); background:var(--brand-soft)}
-.item .preco{font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums}
-.item[aria-pressed="true"] .preco{color:var(--brand); font-weight:600}
-
-.outra-wrap{margin-top:9px}
-.faltou{margin-top:28px; background:var(--surface); border:1.5px dashed var(--line);
-  border-radius:15px; padding:17px 18px}
-.faltou b{display:block; font-size:15px; font-weight:700}
-.faltou span{display:block; font-size:13.5px; color:var(--muted); margin-top:4px}
-.faltou input{margin-top:11px}
-
-/* campos */
-.field{display:flex; flex-direction:column; gap:7px; margin-top:18px}
-.dupla{display:grid; grid-template-columns:1fr 1fr; gap:14px}
-label{font-size:12.5px; font-weight:600; color:var(--muted)}
-input,select,textarea{font-family:inherit; font-size:16px; color:var(--ink); background:var(--surface);
-  border:1.5px solid var(--line); border-radius:13px; padding:13px 15px; width:100%}
-.consent{display:flex; gap:11px; align-items:flex-start; margin-top:18px; font-size:13px; color:var(--muted)}
-.consent input{width:18px; height:18px; flex:none; margin-top:2px; accent-color:var(--brand)}
-.pular{display:block; width:100%; margin-top:22px; background:transparent; border:none;
-  color:var(--muted); font-size:14px; text-decoration:underline; cursor:pointer; padding:10px}
-.miudas{margin-top:14px; font-size:11.5px; line-height:1.5; color:var(--faint); text-align:center}
-
-/* barra de ação */
-.actionbar{position:fixed; left:0; right:0; bottom:0; z-index:30;
-  padding:14px 18px calc(14px + env(safe-area-inset-bottom,0px));
-  background:color-mix(in srgb, var(--ground) 92%, transparent); backdrop-filter:blur(12px);
-  border-top:1px solid var(--line)}
-.actionbar-in{max-width:620px; margin:0 auto; display:flex; gap:10px; align-items:center}
-.btn{flex:1; display:inline-flex; align-items:center; justify-content:center; gap:8px;
-  font-family:"Gabarito",sans-serif; font-weight:700; font-size:16px; padding:15px 22px;
-  border-radius:14px; border:1.5px solid transparent; cursor:pointer; text-decoration:none}
-.btn-primary{background:var(--brand); color:#fff}
-@media (prefers-color-scheme: dark){.btn-primary{color:#06120F}}
-.btn-primary[disabled]{opacity:.4; cursor:not-allowed}
-.btn-back{flex:none; width:52px; background:var(--surface); border-color:var(--line);
-  color:var(--muted); font-size:19px}
-.btn-ghost{background:var(--surface); border-color:var(--line); color:var(--ink)}
-.btn-sm{flex:none; padding:10px 16px; font-size:14px; border-radius:11px}
-
-/* fim */
-.done-mark{width:62px; height:62px; border-radius:50%; background:var(--brand-soft); color:var(--brand);
-  display:grid; place-items:center; font-size:29px; margin-bottom:22px}
-.recap{background:var(--surface); border:1px solid var(--line); border-radius:17px; padding:20px;
-  margin-top:24px; box-shadow:var(--shadow)}
-.recap h3{font-size:14px; font-weight:700; margin-bottom:12px}
-.recap ul{margin:0; padding-left:19px; color:var(--muted); font-size:14.5px}
-.recap li{margin-bottom:5px}
-
-.cupom-teaser{display:flex; gap:12px; align-items:flex-start; margin-top:22px;
-  background:var(--amber-soft); border:1px solid rgba(201,122,18,.3); border-radius:15px; padding:15px 16px}
-.cupom-teaser b{display:block; font-size:15px; color:var(--amber)}
-.cupom-teaser span:last-child{display:block; font-size:13.5px; color:var(--muted); margin-top:3px}
-
-.cupom{margin-top:24px; border:1.5px dashed var(--amber); border-radius:18px; padding:22px;
-  background:var(--amber-soft); text-align:center}
-.cupom-top{font-size:13px; font-weight:600; color:var(--amber)}
-.cupom-cod{font-family:"Gabarito",sans-serif; font-size:clamp(26px,6vw,34px); font-weight:800;
-  letter-spacing:.05em; margin-top:10px; color:var(--ink)}
-.cupom-contador{margin-top:11px; font-size:12.5px; font-weight:600; color:var(--muted)}
-.cupom-repetido{margin-top:12px; font-size:13px; font-weight:600; color:var(--amber);
-  background:var(--surface); border:1px solid rgba(201,122,18,.3); border-radius:11px; padding:10px 13px}
-.cupom-btn{margin-top:14px; border:1.5px solid var(--line); background:var(--surface); color:var(--ink);
-  font-family:"Gabarito",sans-serif; font-weight:700; font-size:14.5px; padding:11px 22px;
-  border-radius:12px; cursor:pointer}
-.cupom-fine{margin-top:14px; font-size:12.5px; color:var(--muted); line-height:1.45}
-.sem-cupom{margin-top:24px; border:1px solid var(--line); border-radius:15px; padding:18px;
-  background:var(--surface-2); font-size:14.5px; color:var(--muted)}
-
-/* avisos */
-.aviso{display:flex; gap:10px; align-items:flex-start; border-radius:13px; padding:13px 15px;
-  font-size:13.5px; margin-top:20px; line-height:1.45}
-.aviso-erro{background:var(--surface); border:1px solid var(--erro); color:var(--ink)}
-.aviso-info{background:var(--amber-soft); border:1px solid rgba(201,122,18,.28); color:var(--ink)}
-.aviso b{color:var(--amber)}
-.aviso-erro b{color:var(--erro)}
-
-/* promoção */
-.promo{margin-top:20px; background:var(--brand); color:#fff; border-radius:16px; padding:18px 20px}
-@media (prefers-color-scheme: dark){.promo{color:#06120F}}
-.promo b{display:block; font-family:"Gabarito",sans-serif; font-size:17px; font-weight:700}
-.promo span{display:block; font-size:14px; opacity:.88; margin-top:5px}
-
-/* instalar */
-.instalar{margin-top:20px; display:flex; gap:12px; align-items:center; justify-content:space-between;
-  background:var(--surface); border:1px solid var(--line); border-radius:15px; padding:14px 16px}
-.instalar p{font-size:13.5px; color:var(--muted)}
-
-</style>
+<link rel="stylesheet" href="estilo.css">
 <style>
   .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:11px; margin-top:20px}
   .kpi{background:var(--surface); border:1px solid var(--line); border-radius:15px;
@@ -235,6 +47,31 @@ input,select,textarea{font-family:inherit; font-size:16px; color:var(--ink); bac
   .acoes{display:flex; gap:9px; flex-wrap:wrap}
   .login{max-width:420px; margin:70px auto; text-align:center}
   @media (max-width:640px){ .kpis{grid-template-columns:repeat(2,1fr)} }
+
+  /* caixa de entrada */
+  .inbox{display:grid; gap:11px; margin-top:18px}
+  .msgc{border:1px solid var(--line); border-radius:15px; padding:16px; background:var(--surface)}
+  .msgc.nova{border-color:var(--amber); background:var(--amber-soft)}
+  .msgc.urg{border-color:var(--erro)}
+  .msgc-topo{display:flex; flex-wrap:wrap; gap:9px; align-items:center; justify-content:space-between}
+  .msgc-id{font-family:"Gabarito",sans-serif; font-weight:700; font-size:15px; letter-spacing:.03em}
+  .msgc-meta{font-size:12px; color:var(--muted)}
+  .msgc-txt{font-size:14.5px; margin-top:9px; line-height:1.5; white-space:pre-wrap}
+  .msgc-acoes{display:flex; flex-wrap:wrap; gap:8px; margin-top:13px; align-items:center}
+  .msgc-acoes select,.msgc-acoes input{width:auto; flex:1; min-width:150px; padding:9px 12px;
+    font-size:14px; border-radius:11px}
+  .tag{display:inline-flex; font-size:11px; font-weight:700; letter-spacing:.04em;
+    text-transform:uppercase; padding:4px 9px; border-radius:99px; background:var(--surface-2); color:var(--muted)}
+  .tag.urg{background:color-mix(in srgb, var(--erro) 15%, transparent); color:var(--erro)}
+  .tag.ok{background:color-mix(in srgb, var(--ok) 15%, transparent); color:var(--ok)}
+  .tag.and{background:var(--amber-soft); color:var(--amber)}
+  .filtros{display:flex; gap:8px; flex-wrap:wrap; margin-top:14px}
+  .filtro{background:var(--surface-2); border:1.5px solid var(--line); border-radius:99px;
+    padding:7px 15px; font-size:13.5px; font-family:inherit; cursor:pointer; color:var(--muted)}
+  .filtro[aria-pressed="true"]{background:var(--brand-soft); border-color:var(--brand); color:var(--brand); font-weight:600}
+  .sino{display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;
+    background:var(--surface-2); border:1px solid var(--line); border-radius:13px; padding:12px 15px; margin-top:14px}
+  .sino p{font-size:13px; color:var(--muted)}
 </style>
 </head>
 <body>
@@ -329,6 +166,55 @@ input,select,textarea{font-family:inherit; font-size:16px; color:var(--ink); bac
   </div>
 
   <div class="block">
+    <h3>Situação do mercado neste condomínio</h3>
+    <p class="sub">É o que os moradores veem no topo do app. Mude conforme o projeto anda.</p>
+    <div class="dupla" style="margin-top:14px">
+      <div class="field" style="margin:0">
+        <label for="f-status">Situação</label>
+        <select id="f-status">
+          <option value="pesquisa">Em pesquisa</option>
+          <option value="aprovado">Aprovado pelo condomínio</option>
+          <option value="obras">Em montagem</option>
+          <option value="aberto">Aberto 24 horas</option>
+          <option value="pausado">Temporariamente fechado</option>
+        </select>
+      </div>
+      <div class="field" style="margin:0">
+        <label for="f-aviso">Aviso (opcional, substitui o texto padrão)</label>
+        <input id="f-aviso" type="text" placeholder="Abrimos dia 3 de outubro, às 8h">
+      </div>
+    </div>
+    <button type="button" class="btn btn-primary btn-sm" id="btn-status" style="margin-top:16px">Salvar situação</button>
+    <p class="lead" id="status-msg" style="font-size:14px"></p>
+  </div>
+
+  <div class="block">
+    <h3>Problemas <span class="tag urg" id="tag-problemas" hidden>0 novos</span></h3>
+    <p class="sub">Reclamação parada vira post no grupo do prédio. Responda e o morador vê no app dele.</p>
+
+    <div class="sino">
+      <p id="sino-txt">Receba um aviso na tela assim que um problema entrar.</p>
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-sino">Ativar avisos</button>
+    </div>
+
+    <div class="filtros" id="filtros-prob">
+      <button type="button" class="filtro" data-f="abertos" aria-pressed="true">Em aberto</button>
+      <button type="button" class="filtro" data-f="todos" aria-pressed="false">Todos</button>
+    </div>
+    <div class="inbox" id="inbox-problemas"></div>
+  </div>
+
+  <div class="block">
+    <h3>Pedidos dos moradores <span class="tag" id="tag-pedidos" hidden>0 novos</span></h3>
+    <p class="sub">Ordenado por quantos apartamentos pediram. Marque como comprado e o morador recebe o retorno.</p>
+    <div class="filtros" id="filtros-ped">
+      <button type="button" class="filtro" data-f="pendentes" aria-pressed="true">A resolver</button>
+      <button type="button" class="filtro" data-f="todos" aria-pressed="false">Todos</button>
+    </div>
+    <div class="inbox" id="inbox-pedidos"></div>
+  </div>
+
+  <div class="block">
     <h3>Cupons</h3>
     <p class="sub">Digite um código para dar baixa na hora da compra.</p>
     <div class="dupla" style="margin-top:14px">
@@ -387,6 +273,8 @@ if (!CFG.SUPABASE_URL || !CFG.SUPABASE_ANON_KEY || !window.supabase) {
   return;
 }
 sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+/* a caixa de entrada (painel-caixa.js) usa a mesma conexão e o mesmo condomínio */
+window.VM_SB = sb;
 
 /* ---------- login por link mágico ---------- */
 async function verificarSessao() {
@@ -452,6 +340,8 @@ async function selecionar(id) {
   DADOS.respostas = (r1.data || []);
   DADOS.cupons = (r2.data || []);
   render();
+  window.VM_CONDO = ATUAL;
+  window.dispatchEvent(new CustomEvent("vm:condo", { detail: ATUAL }));
 }
 
 /* ---------- render ---------- */
@@ -684,6 +574,368 @@ el("btn-promo").addEventListener("click", async function () {
 });
 
 verificarSessao();
+})();
+
+</script>
+<script>
+/* ============================================================
+   Village Market — caixa de entrada do painel
+   Problemas e pedidos que chegam pelo app do morador.
+   Usa a mesma conexão do painel.js (window.VM_SB).
+   ============================================================ */
+(function () {
+"use strict";
+
+var sb = null;
+var CONDO = null;
+var CACHE = { problemas: [], pedidos: [] };
+var FILTRO = { prob: "abertos", ped: "pendentes" };
+var canal = null;
+var TITULO = document.title;
+
+function el(id) { return document.getElementById(id); }
+function limpar(n) { while (n.firstChild) n.removeChild(n.firstChild); return n; }
+function txt(tag, cls, t) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (t !== undefined && t !== null) e.textContent = t;
+  return e;
+}
+function quando(d) {
+  try { return new Date(d).toLocaleString("pt-BR", {
+    day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); }
+  catch (e) { return ""; }
+}
+
+var CATS = {
+  maquina:  "Máquina travou",
+  cobranca: "Cobrança errada",
+  vencido:  "Produto vencido",
+  falta:    "Prateleira vazia",
+  preco:    "Preço diferente",
+  limpeza:  "Sujeira ou bagunça",
+  acesso:   "Não consegui entrar",
+  outro:    "Outro assunto"
+};
+var ST_PROB = { aberto: "Aberto", andamento: "Em andamento", resolvido: "Resolvido" };
+var ST_PED  = { novo: "Na fila", analisando: "Comprando", comprado: "Na prateleira", recusado: "Não vamos levar" };
+
+/* ---------- avisos na tela ---------- */
+function podeAvisar() {
+  return ("Notification" in window) && Notification.permission === "granted";
+}
+function ajustarSino() {
+  var b = el("btn-sino"), p = el("sino-txt");
+  if (!b) return;
+  if (!("Notification" in window)) {
+    b.hidden = true;
+    p.textContent = "Este navegador não mostra avisos na tela. A lista abaixo atualiza sozinha mesmo assim.";
+    return;
+  }
+  if (Notification.permission === "granted") {
+    b.hidden = true;
+    p.textContent = "Avisos ligados. Deixe esta aba aberta e você é avisado assim que um problema entrar.";
+  } else if (Notification.permission === "denied") {
+    b.hidden = true;
+    p.textContent = "Os avisos estão bloqueados nas configurações do navegador para este site.";
+  } else {
+    b.hidden = false;
+    p.textContent = "Receba um aviso na tela assim que um problema entrar.";
+  }
+}
+if (el("btn-sino")) {
+  el("btn-sino").addEventListener("click", function () {
+    if (!("Notification" in window)) return;
+    Notification.requestPermission().then(ajustarSino);
+  });
+}
+
+function bip() {
+  try {
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    var ctx = new Ctx(), o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = "sine"; o.frequency.value = 880;
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.45);
+    o.start(); o.stop(ctx.currentTime + 0.5);
+    setTimeout(function () { ctx.close(); }, 900);
+  } catch (e) {}
+}
+
+function avisar(p) {
+  bip();
+  var titulo = (p.urgente ? "⚠️ " : "") + "Problema " + p.protocolo;
+  var corpo = (CATS[p.categoria] || p.categoria) + " · ap " + p.ap +
+    (p.bloco ? " bloco " + p.bloco : "") + "\n" + String(p.texto || "").slice(0, 120);
+  if (podeAvisar()) {
+    try { new Notification(titulo, { body: corpo, tag: p.id, icon: "icone-192.png" }); } catch (e) {}
+  }
+  document.title = "🔴 " + TITULO;
+  window.addEventListener("focus", function limparTitulo() {
+    document.title = TITULO;
+    window.removeEventListener("focus", limparTitulo);
+  });
+}
+
+/* ---------- carregar ---------- */
+async function carregar() {
+  if (!sb || !CONDO) return;
+  var a = await sb.from("problemas").select("*")
+    .eq("condominio_id", CONDO.id).order("criado_em", { ascending: false }).limit(300);
+  var b = await sb.from("pedidos").select("*")
+    .eq("condominio_id", CONDO.id).order("apoios", { ascending: false }).limit(300);
+  CACHE.problemas = a.data || [];
+  CACHE.pedidos = b.data || [];
+  render();
+}
+
+function render() {
+  renderProblemas();
+  renderPedidos();
+
+  var nP = CACHE.problemas.filter(function (p) { return p.status !== "resolvido"; }).length;
+  var tp = el("tag-problemas");
+  tp.hidden = nP === 0;
+  tp.textContent = nP + (nP === 1 ? " em aberto" : " em aberto");
+
+  var nD = CACHE.pedidos.filter(function (p) { return p.status === "novo"; }).length;
+  var td = el("tag-pedidos");
+  td.hidden = nD === 0;
+  td.textContent = nD + (nD === 1 ? " novo" : " novos");
+}
+
+/* ---------- problemas ---------- */
+function renderProblemas() {
+  var box = limpar(el("inbox-problemas"));
+  var lista = CACHE.problemas.filter(function (p) {
+    return FILTRO.prob === "todos" ? true : p.status !== "resolvido";
+  });
+
+  if (!lista.length) {
+    box.appendChild(txt("p", "sub", FILTRO.prob === "todos"
+      ? "Nenhum problema registrado neste condomínio. Bom sinal."
+      : "Nada em aberto. Tudo respondido."));
+    return;
+  }
+
+  lista.forEach(function (p) {
+    var c = txt("div", "msgc" + (p.status === "aberto" ? " nova" : "") + (p.urgente && p.status !== "resolvido" ? " urg" : ""));
+
+    var topo = txt("div", "msgc-topo");
+    var esq = txt("div");
+    esq.appendChild(txt("span", "msgc-id", p.protocolo));
+    var meta = txt("div", "msgc-meta",
+      (CATS[p.categoria] || p.categoria) +
+      " · ap " + p.ap + (p.bloco ? " bloco " + p.bloco : "") +
+      (p.nome ? " · " + p.nome : "") +
+      (p.valor ? " · R$ " + Number(p.valor).toFixed(2).replace(".", ",") : "") +
+      " · " + quando(p.criado_em));
+    esq.appendChild(meta);
+    topo.appendChild(esq);
+
+    var tags = txt("div");
+    if (p.urgente && p.status !== "resolvido") tags.appendChild(txt("span", "tag urg", "urgente"));
+    tags.appendChild(txt("span",
+      "tag " + (p.status === "resolvido" ? "ok" : p.status === "andamento" ? "and" : ""),
+      ST_PROB[p.status] || p.status));
+    topo.appendChild(tags);
+    c.appendChild(topo);
+
+    c.appendChild(txt("div", "msgc-txt", p.texto));
+
+    if (p.resposta) {
+      var r = txt("div", "meu-resp");
+      r.appendChild(txt("b", null, "Sua resposta"));
+      r.appendChild(document.createTextNode(p.resposta));
+      c.appendChild(r);
+    }
+
+    var acoes = txt("div", "msgc-acoes");
+
+    var sel = document.createElement("select");
+    ["aberto", "andamento", "resolvido"].forEach(function (s) {
+      var o = document.createElement("option");
+      o.value = s; o.textContent = ST_PROB[s];
+      if (p.status === s) o.selected = true;
+      sel.appendChild(o);
+    });
+
+    var inp = document.createElement("input");
+    inp.type = "text";
+    inp.placeholder = "Resposta para o morador (aparece no app dele)";
+    inp.value = p.resposta || "";
+
+    var bt = document.createElement("button");
+    bt.type = "button"; bt.className = "btn btn-primary btn-sm";
+    bt.textContent = "Salvar";
+    bt.addEventListener("click", async function () {
+      bt.disabled = true; bt.textContent = "Salvando…";
+      var r = await sb.rpc("responder_problema", {
+        p_id: p.id, p_status: sel.value, p_resposta: inp.value.trim() || null
+      });
+      bt.disabled = false; bt.textContent = "Salvar";
+      if (r.error) { bt.textContent = "Erro"; return; }
+      carregar();
+    });
+
+    var zap = null;
+    if (p.whatsapp) {
+      zap = document.createElement("a");
+      zap.className = "btn btn-ghost btn-sm";
+      zap.target = "_blank"; zap.rel = "noopener";
+      zap.textContent = "WhatsApp";
+      zap.href = "https://wa.me/" + ("55" + p.whatsapp.replace(/\D/g, "")).replace(/^5555/, "55") +
+        "?text=" + encodeURIComponent(
+          "Oi! Aqui é da Village Market. Sobre o protocolo " + p.protocolo + ": ");
+    }
+
+    acoes.appendChild(sel); acoes.appendChild(inp); acoes.appendChild(bt);
+    if (zap) acoes.appendChild(zap);
+    c.appendChild(acoes);
+
+    box.appendChild(c);
+  });
+}
+
+/* ---------- pedidos ---------- */
+function renderPedidos() {
+  var box = limpar(el("inbox-pedidos"));
+  var lista = CACHE.pedidos.filter(function (p) {
+    return FILTRO.ped === "todos" ? true : (p.status === "novo" || p.status === "analisando");
+  });
+
+  if (!lista.length) {
+    box.appendChild(txt("p", "sub", FILTRO.ped === "todos"
+      ? "Nenhum pedido ainda. Eles aparecem aqui quando um morador usa a aba Faltou."
+      : "Nada pendente. Tudo decidido."));
+    return;
+  }
+
+  lista.forEach(function (p) {
+    var c = txt("div", "msgc" + (p.status === "novo" ? " nova" : ""));
+
+    var topo = txt("div", "msgc-topo");
+    var esq = txt("div");
+    esq.appendChild(txt("span", "msgc-id", p.texto));
+    esq.appendChild(txt("div", "msgc-meta",
+      p.apoios + (p.apoios === 1 ? " apartamento pediu" : " apartamentos pediram") +
+      " · desde " + quando(p.criado_em)));
+    topo.appendChild(esq);
+    topo.appendChild(txt("span",
+      "tag " + (p.status === "comprado" ? "ok" : p.status === "analisando" ? "and" : ""),
+      ST_PED[p.status] || p.status));
+    c.appendChild(topo);
+
+    if (p.resposta) {
+      var r = txt("div", "meu-resp");
+      r.appendChild(txt("b", null, "Sua resposta"));
+      r.appendChild(document.createTextNode(p.resposta));
+      c.appendChild(r);
+    }
+
+    var acoes = txt("div", "msgc-acoes");
+    var sel = document.createElement("select");
+    ["novo", "analisando", "comprado", "recusado"].forEach(function (s) {
+      var o = document.createElement("option");
+      o.value = s; o.textContent = ST_PED[s];
+      if (p.status === s) o.selected = true;
+      sel.appendChild(o);
+    });
+    var inp = document.createElement("input");
+    inp.type = "text";
+    inp.placeholder = "Recado para quem pediu (opcional)";
+    inp.value = p.resposta || "";
+    var bt = document.createElement("button");
+    bt.type = "button"; bt.className = "btn btn-primary btn-sm"; bt.textContent = "Salvar";
+    bt.addEventListener("click", async function () {
+      bt.disabled = true; bt.textContent = "Salvando…";
+      var r2 = await sb.rpc("responder_pedido", {
+        p_id: p.id, p_status: sel.value, p_resposta: inp.value.trim() || null
+      });
+      bt.disabled = false; bt.textContent = "Salvar";
+      if (r2.error) { bt.textContent = "Erro"; return; }
+      carregar();
+    });
+    acoes.appendChild(sel); acoes.appendChild(inp); acoes.appendChild(bt);
+    c.appendChild(acoes);
+
+    box.appendChild(c);
+  });
+}
+
+/* ---------- filtros ---------- */
+function ligarFiltro(containerId, chave) {
+  var box = el(containerId);
+  if (!box) return;
+  Array.prototype.forEach.call(box.children, function (b) {
+    b.addEventListener("click", function () {
+      FILTRO[chave] = b.dataset.f;
+      Array.prototype.forEach.call(box.children, function (x) {
+        x.setAttribute("aria-pressed", x === b ? "true" : "false");
+      });
+      render();
+    });
+  });
+}
+ligarFiltro("filtros-prob", "prob");
+ligarFiltro("filtros-ped", "ped");
+
+/* ---------- situação do mercado ---------- */
+el("btn-status").addEventListener("click", async function () {
+  if (!CONDO) return;
+  this.disabled = true;
+  var r = await sb.from("condominios").update({
+    status_mercado: el("f-status").value,
+    aviso: el("f-aviso").value.trim() || null
+  }).eq("id", CONDO.id);
+  this.disabled = false;
+  el("status-msg").textContent = r.error
+    ? "Não deu certo: " + r.error.message
+    : "Salvo. Já aparece no topo do app dos moradores.";
+  if (!r.error) {
+    CONDO.status_mercado = el("f-status").value;
+    CONDO.aviso = el("f-aviso").value.trim() || null;
+  }
+});
+
+async function carregarSituacao() {
+  if (!sb || !CONDO) return;
+  var r = await sb.from("condominios")
+    .select("status_mercado,aviso").eq("id", CONDO.id).maybeSingle();
+  if (r.error || !r.data) return;
+  el("f-status").value = r.data.status_mercado || "pesquisa";
+  el("f-aviso").value = r.data.aviso || "";
+}
+
+/* ---------- ao vivo ---------- */
+function escutar() {
+  if (!sb || !CONDO) return;
+  if (canal) { try { sb.removeChannel(canal); } catch (e) {} canal = null; }
+  canal = sb.channel("caixa-" + CONDO.id)
+    .on("postgres_changes",
+      { event: "INSERT", schema: "public", table: "problemas",
+        filter: "condominio_id=eq." + CONDO.id },
+      function (m) { avisar(m.new); carregar(); })
+    .on("postgres_changes",
+      { event: "INSERT", schema: "public", table: "pedidos",
+        filter: "condominio_id=eq." + CONDO.id },
+      function () { bip(); carregar(); })
+    .subscribe();
+}
+
+/* ---------- entrada ---------- */
+window.addEventListener("vm:condo", function (e) {
+  sb = window.VM_SB;
+  CONDO = e.detail;
+  if (!sb || !CONDO) return;
+  ajustarSino();
+  carregarSituacao();
+  carregar();
+  escutar();
+});
 })();
 
 </script>

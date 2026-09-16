@@ -6,13 +6,20 @@
      - arquivos: tenta a rede e guarda cópia; sem rede, usa o cache
    Nunca devolve HTML no lugar de um .js ou .css. */
 
-var CACHE = "village-market-v2";
+var CACHE = "village-market-v3";
 var BASE = [
   "./",
   "index.html",
+  "app.html",
   "painel.html",
+  "estilo.css",
+  "app.js",
+  "app-morador.js",
+  "painel.js",
   "config.js",
-  "manifest.webmanifest"
+  "manifest.webmanifest",
+  "icone-192.png",
+  "icone-512.png"
 ];
 
 self.addEventListener("install", function (e) {

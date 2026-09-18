@@ -4,34 +4,36 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Village Market</title>
-<meta name="description" content="O mercado do seu prédio: peça o que faltou, avise um problema e acompanhe seu cupom.">
-<meta name="theme-color" content="#12594A">
+<meta name="description" content="O mercado do seu condomínio: peça o que faltou, fale com a gente e acompanhe seu cupom.">
+<meta name="theme-color" content="#F7F5EF">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icone.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icone-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gabarito:wght@500;600;700;800&family=Instrument+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="estilo.css">
 </head>
 <body>
 
-<div class="top">
+<header class="top" id="topo">
   <div class="app" style="padding-block:0">
     <div class="top-row">
       <span class="brand">
         <svg class="mark" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M12 1.6 L22.6 10 V20.6 a1.9 1.9 0 0 1-1.9 1.9 H3.3 a1.9 1.9 0 0 1-1.9-1.9 V10 Z" fill="var(--brand)"/>
-          <rect x="9" y="12.2" width="6" height="6" rx="1.2" fill="var(--bar)"/>
+          <rect x="9" y="12.2" width="6" height="6" rx="1.2" fill="var(--amber)"/>
         </svg>
         Village <i>Market</i>
       </span>
-      <div class="top-condo" id="top-condo">carregando…</div>
+      <span class="status-pill" id="status-pill" hidden>
+        <span class="luz" aria-hidden="true"></span><span id="status-pill-txt"></span>
+      </span>
     </div>
   </div>
-</div>
+</header>
 
-<div class="app tela-app">
+<main class="app tela-app">
 
   <div id="aviso-condo" class="aviso aviso-erro" hidden>
     <span aria-hidden="true">⚠️</span>
@@ -39,9 +41,9 @@
   </div>
 
   <!-- ====== quem é você (bloco + ap) ====== -->
-  <section class="tabpane" id="pane-eu" hidden>
+  <section class="tabpane" id="pane-eu" hidden aria-labelledby="eu-titulo">
     <div class="pane-head">
-      <h2>De qual apartamento você é?</h2>
+      <h2 id="eu-titulo">De qual apartamento você é?</h2>
       <p>Só o bloco e o número. É o que liga seu pedido, seu protocolo e seu cupom — e o que impede alguém de votar cem vezes.</p>
     </div>
     <div class="dupla">
@@ -63,24 +65,42 @@
   </section>
 
   <!-- ====== INÍCIO ====== -->
-  <section class="tabpane" id="pane-inicio" hidden>
+  <section class="tabpane" id="pane-inicio" hidden aria-labelledby="hero-saudacao">
+    <div class="hero">
+      <p class="hero-condo" id="hero-condo">&nbsp;</p>
+      <h1 id="hero-saudacao">Olá.</h1>
+      <p class="hero-frase">O mercado do seu condomínio, feito com você.</p>
+    </div>
+
     <div id="situacao-box"></div>
+
+    <!-- o coração da Home -->
+    <section class="secao" id="chegou-secao" hidden aria-labelledby="chegou-titulo">
+      <p class="secao-olho">Você pediu. Chegou.</p>
+      <h2 id="chegou-titulo">Vocês pediram. A Village trouxe.</h2>
+      <div class="chegou" id="atendidos"></div>
+    </section>
+
     <div id="promo-box"></div>
+
+
+    <section class="secao" id="demandas-secao" hidden aria-labelledby="demandas-titulo">
+      <p class="secao-olho calmo">Em votação</p>
+      <h3 id="demandas-titulo">O que o prédio está pedindo agora</h3>
+      <p class="secao-sub">Toque em <b>Faltou</b> para somar o seu.</p>
+      <div class="demandas" id="demandas"></div>
+    </section>
+
+    <section class="secao" id="pesquisa-secao">
+      <p class="secao-olho calmo">Dois minutos</p>
+      <h3>Ainda não respondeu a pesquisa?</h3>
+      <p class="secao-sub">É o que decide o que entra nas prateleiras daqui. Rende 10% de desconto na primeira compra.</p>
+      <a class="btn btn-ghost btn-cheio" id="link-pesquisa" href="./">Responder a pesquisa</a>
+    </section>
+
     <div class="euchip" id="euchip" hidden>
       <span id="euchip-txt"></span>
       <button type="button" id="euchip-trocar">trocar</button>
-    </div>
-
-    <div class="card">
-      <h3>O que mudou por causa dos moradores</h3>
-      <p class="cap">Pedidos que já viraram produto na prateleira.</p>
-      <div id="atendidos"></div>
-    </div>
-
-    <div class="card">
-      <h3>Ainda não respondeu a pesquisa?</h3>
-      <p class="cap">São 2 minutos e rende 10% de desconto na primeira compra.</p>
-      <a class="btn btn-ghost btn-cheio" id="link-pesquisa" href="./">Responder a pesquisa</a>
     </div>
 
     <div class="instalar" id="instalar" hidden>
@@ -90,9 +110,9 @@
   </section>
 
   <!-- ====== FALTOU ====== -->
-  <section class="tabpane" id="pane-faltou" hidden>
+  <section class="tabpane" id="pane-faltou" hidden aria-labelledby="faltou-titulo">
     <div class="pane-head">
-      <h2>Faltou alguma coisa?</h2>
+      <h2 id="faltou-titulo">Sentiu falta de alguma coisa?</h2>
       <p>Escreve o que você queria comprar e não tinha. Se outro vizinho já pediu igual, seu pedido soma no mesmo — é a soma que decide o que a gente compra.</p>
     </div>
 
@@ -101,23 +121,23 @@
       <input id="p-texto" type="text" maxlength="120" placeholder="Ex: cerveja Therezópolis, fralda P, pão francês" autocomplete="off">
     </div>
     <button type="button" class="btn btn-primary btn-cheio" id="p-enviar">Pedir</button>
-    <p class="msg" id="p-msg"></p>
+    <p class="msg" id="p-msg" role="status" aria-live="polite"></p>
 
-    <div class="pane-head" style="margin-top:32px">
-      <h3 style="font-family:'Gabarito',sans-serif; font-size:17px; font-weight:700">O que o prédio está pedindo</h3>
-      <p style="font-size:14px">Toque no número para dizer que você também quer.</p>
-    </div>
-    <div class="rank" id="rank"></div>
+    <section class="secao">
+      <p class="secao-olho calmo">O prédio pediu</p>
+      <h3>Toque no número para dizer que você também quer</h3>
+      <div class="rank" id="rank"></div>
+    </section>
   </section>
 
-  <!-- ====== PROBLEMA ====== -->
-  <section class="tabpane" id="pane-problema" hidden>
+  <!-- ====== AJUDA (identificadores seguem "problema") ====== -->
+  <section class="tabpane" id="pane-problema" hidden aria-labelledby="ajuda-titulo">
     <div class="pane-head">
-      <h2>Deu algum problema?</h2>
-      <p>Conta aqui. Você recebe um número de protocolo e acompanha a resposta dentro do app.</p>
+      <h2 id="ajuda-titulo">Precisa de ajuda?</h2>
+      <p>Conta o que aconteceu. Você recebe um número de protocolo e acompanha a resposta aqui dentro.</p>
     </div>
 
-    <div class="cats" id="cats"></div>
+    <div class="cats" id="cats" role="group" aria-label="Tipo de ocorrência"></div>
 
     <div class="field" id="campo-valor" hidden>
       <label for="q-valor">Valor cobrado errado (R$)</label>
@@ -133,39 +153,39 @@
       <input id="q-zap" type="tel" placeholder="(41) 99999-0000" autocomplete="tel">
     </div>
 
-    <button type="button" class="btn btn-primary btn-cheio" id="q-enviar">Registrar problema</button>
-    <p class="msg" id="q-msg"></p>
+    <button type="button" class="btn btn-primary btn-cheio" id="q-enviar">Enviar</button>
+    <p class="msg" id="q-msg" role="status" aria-live="polite"></p>
 
     <div id="q-resultado"></div>
   </section>
 
   <!-- ====== MEUS ====== -->
-  <section class="tabpane" id="pane-meus" hidden>
+  <section class="tabpane" id="pane-meus" hidden aria-labelledby="meus-titulo">
     <div class="pane-head">
-      <h2>Meus</h2>
+      <h2 id="meus-titulo">Meus</h2>
       <p id="meus-sub">Seu cupom, seus pedidos e seus protocolos.</p>
     </div>
     <div id="meus-conteudo"></div>
   </section>
 
-</div>
+</main>
 
 <nav class="tabbar" aria-label="Seções do app">
   <div class="tabbar-in" id="tabbar" role="tablist">
-    <button type="button" class="tab" role="tab" data-alvo="inicio" aria-selected="true">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/></svg>
+    <button type="button" class="tab" role="tab" data-alvo="inicio" aria-selected="true" aria-controls="pane-inicio">
+      <span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/></svg></span>
       Início
     </button>
-    <button type="button" class="tab" role="tab" data-alvo="faltou" aria-selected="false">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.2l2.3 11.2a1.8 1.8 0 0 0 1.8 1.4h8.4a1.8 1.8 0 0 0 1.8-1.4L21 8H6"/><circle cx="9.5" cy="20" r="1.3"/><circle cx="17.5" cy="20" r="1.3"/><path d="M12.5 5.2v4.6M10.2 7.5h4.6"/></svg>
+    <button type="button" class="tab" role="tab" data-alvo="faltou" aria-selected="false" aria-controls="pane-faltou">
+      <span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5h12"/><path d="M4 12h12"/><path d="M4 17.5h6"/><path d="M14.5 17.5h6"/><path d="M17.5 14.5v6"/></svg></span>
       Faltou
     </button>
-    <button type="button" class="tab" role="tab" data-alvo="problema" aria-selected="false">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.8 2.4 17.5a1.9 1.9 0 0 0 1.7 2.9h15.8a1.9 1.9 0 0 0 1.7-2.9L13.7 3.8a1.9 1.9 0 0 0-3.4 0Z"/><path d="M12 9.5v4"/><path d="M12 17h.01"/></svg>
-      Problema
+    <button type="button" class="tab" role="tab" data-alvo="problema" aria-selected="false" aria-controls="pane-problema">
+      <span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 12.3a7.7 7.7 0 0 1-8.3 7.7 8.6 8.6 0 0 1-2.8-.5L4 21l1.4-4.2a7.7 7.7 0 0 1-1.9-5 7.7 7.7 0 0 1 8.3-7.7 7.8 7.8 0 0 1 8.7 8.2Z"/><path d="M12 15.6h.01"/><path d="M9.9 9.6a2.1 2.1 0 0 1 4.1.7c0 1.4-2 1.8-2 3"/></svg></span>
+      Ajuda
     </button>
-    <button type="button" class="tab" role="tab" data-alvo="meus" aria-selected="false">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8.5a1.5 1.5 0 0 1 1.5-1.5h14a1.5 1.5 0 0 1 1.5 1.5v2a2 2 0 0 0 0 4v2a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5v-2a2 2 0 0 0 0-4Z"/><path d="M14 8.5v9"/></svg>
+    <button type="button" class="tab" role="tab" data-alvo="meus" aria-selected="false" aria-controls="pane-meus">
+      <span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8.5a1.5 1.5 0 0 1 1.5-1.5h14a1.5 1.5 0 0 1 1.5 1.5v2a2 2 0 0 0 0 4v2a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5v-2a2 2 0 0 0 0-4Z"/><path d="M14 8.5v9"/></svg></span>
       Meus
     </button>
   </div>
@@ -191,6 +211,17 @@ function txt(tag, cls, t) {
   if (cls) e.className = cls;
   if (t !== undefined && t !== null) e.textContent = t;
   return e;
+}
+function esqueleto(n) {
+  var f = document.createDocumentFragment();
+  for (var i = 0; i < (n || 1); i++) {
+    var c = txt("div", "carregando");
+    c.appendChild(txt("div", "esqueleto alto"));
+    c.appendChild(txt("div", "esqueleto curto"));
+    c.setAttribute("aria-hidden", "true");
+    f.appendChild(c);
+  }
+  return f;
 }
 function data(d) {
   try { return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }); }
@@ -309,27 +340,39 @@ el("euchip-trocar").addEventListener("click", function () {
 
 /* ---------- condomínio ---------- */
 var SITUACOES = {
-  pesquisa: { t: "Em pesquisa", s: "Ainda estamos ouvindo os moradores deste prédio. Sua resposta pesa na decisão.", c: "" },
-  aprovado: { t: "Aprovado pelo condomínio", s: "Deu certo: o mercado vem. Agora é acertar a obra e a data.", c: "" },
-  obras:    { t: "Em montagem", s: "As prateleiras já estão sendo montadas. Falta pouco.", c: "" },
-  aberto:   { t: "Aberto 24 horas", s: "Mercado funcionando. Qualquer problema, use a aba Problema.", c: "aberto" },
-  pausado:  { t: "Temporariamente fechado", s: "Estamos resolvendo. Volta em breve.", c: "pausado" }
+  pesquisa: { curto: "Em pesquisa",  t: "Em pesquisa",              s: "Ainda estamos ouvindo os moradores deste prédio. Sua resposta pesa na decisão.", c: "pesquisa" },
+  aprovado: { curto: "Aprovado",     t: "Aprovado pelo condomínio", s: "Deu certo: o mercado vem. Agora é acertar a obra e a data.",                     c: "aprovado" },
+  obras:    { curto: "Em montagem",  t: "Em montagem",              s: "As prateleiras já estão sendo montadas. Falta pouco.",                          c: "obras" },
+  aberto:   { curto: "Aberto 24h",   t: "Aberto 24 horas",          s: "Mercado funcionando. Qualquer coisa, fale com a gente na aba Ajuda.",            c: "aberto" },
+  pausado:  { curto: "Fechado",      t: "Temporariamente fechado",  s: "Estamos resolvendo. Volta em breve.",                                            c: "pausado" }
 };
 
+/* saudação pela hora do aparelho */
+function saudacao() {
+  var h = new Date().getHours();
+  if (h < 5)  return "Boa madrugada.";
+  if (h < 12) return "Bom dia.";
+  if (h < 18) return "Boa tarde.";
+  return "Boa noite.";
+}
+function primeiroNome() {
+  return (EU.nome || "").trim().split(/\s+/)[0] || "";
+}
+
 async function carregarCondominio() {
-  if (!sb || !SLUG) { el("top-condo").textContent = "—"; return; }
+  if (!sb || !SLUG) { el("hero-condo").textContent = "—"; return; }
   try {
-    var r = await sb.from("condominios")
-      .select("id,slug,nome,cidade,unidades,status_mercado,aviso")
-      .eq("slug", SLUG).eq("ativo", true).maybeSingle();
+    /* R4: o público não lê a tabela condominios. Pergunta pelo slug e
+       recebe de volta só os campos que o app usa. */
+    var r = await sb.rpc("condominio_publico", { p_slug: SLUG });
     if (r.error) throw r.error;
-    if (!r.data) { el("aviso-condo").hidden = false; el("top-condo").textContent = "—"; return; }
+    if (!r.data) { el("aviso-condo").hidden = false; el("hero-condo").textContent = "—"; return; }
     CONDO = r.data;
-    el("top-condo").textContent = CONDO.nome;
+    el("hero-condo").textContent = CONDO.nome;
     document.title = "Village Market — " + CONDO.nome;
     el("link-pesquisa").href = "./?c=" + SLUG;
   } catch (e) {
-    el("top-condo").textContent = "sem conexão";
+    el("hero-condo").textContent = "sem conexão";
   }
   renderInicio();
 }
@@ -337,33 +380,52 @@ async function carregarCondominio() {
 async function carregarPromocao() {
   if (!sb || !CONDO) return;
   try {
-    var r = await sb.from("promocoes").select("titulo,texto")
-      .or("condominio_id.is.null,condominio_id.eq." + CONDO.id)
-      .order("criado_em", { ascending: false }).limit(1);
-    if (r.error || !r.data || !r.data.length) return;
-    var p = r.data[0];
+    /* R4: idem para a promoção */
+    var r = await sb.rpc("promocao_ativa", { p_slug: SLUG });
+    if (r.error || !r.data || !r.data.titulo) return;
+    var p = r.data;
     var box = limpar(el("promo-box"));
     var d = txt("div", "promo");
-    d.appendChild(txt("b", null, p.titulo));
-    if (p.texto) d.appendChild(txt("span", null, p.texto));
+    var selo = txt("span", "selo-promo", "★");
+    selo.setAttribute("aria-hidden", "true");
+    d.appendChild(selo);
+    var corpo = txt("div");
+    corpo.appendChild(txt("b", null, p.titulo));
+    if (p.texto) corpo.appendChild(txt("span", null, p.texto));
+    d.appendChild(corpo);
     box.appendChild(d);
   } catch (e) {}
 }
 
 /* ---------- aba Início ---------- */
 function renderInicio() {
-  var box = limpar(el("situacao-box"));
+  /* saudação: uma linha só — "Boa noite, Maria." */
+  var nome = primeiroNome();
+  el("hero-saudacao").textContent = nome
+    ? saudacao().replace(".", ", " + nome + ".")
+    : saudacao();
+
+  /* pílula de situação, no topo */
+  var pill = el("status-pill");
   if (CONDO) {
     var s = SITUACOES[CONDO.status_mercado] || SITUACOES.pesquisa;
-    var d = txt("div", "situacao " + (s.c || ""));
-    d.appendChild(txt("span", "luz"));
-    var meio = txt("div");
-    meio.appendChild(txt("b", null, s.t));
-    meio.appendChild(txt("span", null, CONDO.aviso || s.s));
-    d.appendChild(meio);
-    box.appendChild(d);
+    pill.hidden = false;
+    pill.className = "status-pill " + (s.c || "");
+    el("status-pill-txt").textContent = s.curto;
+  } else {
+    pill.hidden = true;
   }
 
+  /* recado escrito à mão pela operação, quando existe */
+  var box = limpar(el("situacao-box"));
+  if (CONDO && (CONDO.aviso || "").trim()) {
+    var a = txt("div", "aviso aviso-info");
+    a.appendChild(txt("span", null, "📣"));
+    a.appendChild(txt("div", null, CONDO.aviso.trim()));
+    box.appendChild(a);
+  }
+
+  /* quem é você */
   var chip = el("euchip");
   if (temEu()) {
     chip.hidden = false;
@@ -373,42 +435,87 @@ function renderInicio() {
   }
 
   carregarPromocao();
-  carregarAtendidos();
+  carregarPedidosDaHome();
 }
 
-async function carregarAtendidos() {
-  var box = limpar(el("atendidos"));
+function plural(n, um, muitos) { return n + " " + (n === 1 ? um : muitos); }
+
+/* Um único ida-e-volta alimenta as duas seções da Home:
+   o que já chegou (o coração) e o que ainda está em votação. */
+async function carregarPedidosDaHome() {
+  var secChegou = el("chegou-secao"), secDem = el("demandas-secao");
+  var caixaChegou = limpar(el("atendidos")), caixaDem = limpar(el("demandas"));
+
+  secChegou.hidden = false;
+  caixaChegou.appendChild(esqueleto(2));
+
   var r = await rpc("listar_pedidos", { p_slug: SLUG, p_bloco: EU.bloco, p_ap: EU.ap });
-  var lista = (r.dados || []).filter(function (p) {
-    return p.status === "comprado" || p.status === "analisando";
-  }).slice(0, 6);
+  var lista = r.dados || [];
+  limpar(caixaChegou);
 
-  if (!lista.length) {
-    var v = txt("div", "vazio");
-    v.appendChild(txt("em", null, "🧺"));
-    v.appendChild(document.createTextNode(
-      "Nada por aqui ainda. O que os moradores pedirem na aba Faltou aparece nesta lista quando entrar no estoque."));
-    box.appendChild(v);
-    return;
+  var chegaram = lista.filter(function (p) { return p.status === "comprado"; }).slice(0, 3);
+  var votando  = lista.filter(function (p) { return p.status === "novo" || p.status === "analisando"; }).slice(0, 4);
+
+  /* --- Você pediu. Chegou. --- */
+  if (!chegaram.length) {
+    secChegou.hidden = true;
+  } else {
+    secChegou.hidden = false;
+    chegaram.forEach(function (p) {
+      var c = txt("article", "chegou-card");
+
+      var topo = txt("div", "chegou-topo");
+      topo.appendChild(txt("h3", "chegou-nome", p.texto));
+      var num = txt("div", "chegou-num");
+      num.appendChild(txt("b", null, String(p.apoios)));
+      num.appendChild(txt("span", null, p.apoios === 1 ? "apartamento" : "apartamentos"));
+      topo.appendChild(num);
+      c.appendChild(topo);
+
+      var est = txt("p", "chegou-estado");
+      var tick = txt("span", "tick", "✓");
+      tick.setAttribute("aria-hidden", "true");
+      est.appendChild(tick);
+      est.appendChild(txt("span", null, "Já está na prateleira"));
+      c.appendChild(est);
+
+      if (p.resposta) c.appendChild(txt("p", "chegou-fala", p.resposta));
+      caixaChegou.appendChild(c);
+    });
   }
-  lista.forEach(function (p) {
-    var it = txt("div", "rank-item" + (p.status === "comprado" ? " atendido" : ""));
-    var t = txt("div", "rank-txt");
-    t.appendChild(txt("b", null, p.texto));
-    t.appendChild(txt("span", null, p.apoios + (p.apoios === 1 ? " morador pediu" : " moradores pediram")));
-    var selo = txt("span", "selo " + (p.status === "comprado" ? "ok" : "andamento"),
-      p.status === "comprado" ? "já está na prateleira" : "estamos comprando");
-    t.appendChild(selo);
-    if (p.resposta) {
-      var rp = txt("div", "meu-resp");
-      rp.appendChild(txt("b", null, "Village Market"));
-      rp.appendChild(document.createTextNode(p.resposta));
-      t.appendChild(rp);
-    }
-    it.appendChild(t);
-    box.appendChild(it);
-  });
+
+  /* --- em votação --- */
+  if (!votando.length) {
+    secDem.hidden = true;
+  } else {
+    secDem.hidden = false;
+    votando.forEach(function (p) {
+      var linha = txt("div", "demanda");
+      var t = txt("div", "demanda-txt");
+      t.appendChild(txt("b", null, p.texto));
+      t.appendChild(txt("span", null,
+        p.status === "analisando"
+          ? "Estamos comprando"
+          : plural(p.apoios, "apartamento pediu", "apartamentos pediram")));
+      linha.appendChild(t);
+      var n = txt("div", "demanda-num", String(p.apoios));
+      n.setAttribute("aria-hidden", "true");
+      linha.appendChild(n);
+      caixaDem.appendChild(linha);
+    });
+  }
 }
+
+/* sombra no topo só depois que a página rola */
+(function sombraDoTopo() {
+  var topo = el("topo");
+  if (!topo) return;
+  var ultimo = null;
+  window.addEventListener("scroll", function () {
+    var rolou = window.scrollY > 4;
+    if (rolou !== ultimo) { topo.classList.toggle("rolou", rolou); ultimo = rolou; }
+  }, { passive: true });
+})();
 
 /* ---------- aba Faltou ---------- */
 function msg(id, texto, tipo) {
@@ -470,7 +577,7 @@ async function carregarRank() {
 
     var t = txt("div", "rank-txt");
     t.appendChild(txt("b", null, p.texto));
-    t.appendChild(txt("span", null, p.apoios + (p.apoios === 1 ? " morador" : " moradores")));
+    t.appendChild(txt("span", null, plural(p.apoios, "apartamento", "apartamentos")));
     if (p.status === "comprado")  t.appendChild(txt("span", "selo ok", "já está na prateleira"));
     if (p.status === "analisando") t.appendChild(txt("span", "selo andamento", "estamos comprando"));
     it.appendChild(t);
@@ -497,7 +604,7 @@ async function carregarRank() {
       b.appendChild(txt("span", null, String(d.apoios)));
       b.appendChild(txt("small", null, d.apoiou ? "eu quero" : "+ eu"));
       var cont = it.querySelector(".rank-txt span");
-      if (cont) cont.textContent = d.apoios + (d.apoios === 1 ? " morador" : " moradores");
+      if (cont) cont.textContent = plural(d.apoios, "apartamento", "apartamentos");
     });
     it.appendChild(b);
 

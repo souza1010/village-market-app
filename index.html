@@ -4,35 +4,38 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Village Market — Cesta do Prédio</title>
-<meta name="description" content="Escolha o que vai ter no mercado 24h do seu condomínio.">
-<meta name="theme-color" content="#12594A">
+<meta name="description" content="Dois minutos para dizer o que não pode faltar no mercado do seu condomínio.">
+<meta name="theme-color" content="#F7F5EF">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icone.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icone-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gabarito:wght@500;600;700;800&family=Instrument+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="estilo.css">
 </head>
 <body>
 
-<div class="top">
+<header class="top" id="topo">
   <div class="app" style="padding-block:0">
     <div class="top-row">
       <a class="brand" href="./">
         <svg class="mark" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M12 1.6 L22.6 10 V20.6 a1.9 1.9 0 0 1-1.9 1.9 H3.3 a1.9 1.9 0 0 1-1.9-1.9 V10 Z" fill="var(--brand)"/>
-          <rect x="9" y="12.2" width="6" height="6" rx="1.2" fill="var(--bar)"/>
+          <rect x="9" y="12.2" width="6" height="6" rx="1.2" fill="var(--amber)"/>
         </svg>
         Village <i>Market</i>
       </a>
       <div class="top-condo" id="top-condo">carregando…</div>
     </div>
-    <div class="progress"><span id="progress-bar"></span></div>
+    <!-- progresso por etapa: 6 perguntas, uma marca por pergunta -->
+    <div class="passos" id="progress-bar" role="progressbar"
+         aria-valuemin="0" aria-valuemax="6" aria-valuenow="0"
+         aria-label="Progresso da pesquisa" hidden></div>
   </div>
-</div>
+</header>
 
-<div class="app">
+<main class="app">
 
   <div id="aviso-config" class="aviso aviso-erro" hidden>
     <span aria-hidden="true">⚠️</span>
@@ -46,11 +49,13 @@
     <code>?c=</code> seguido do identificador do condomínio.</div>
   </div>
 
-  <section class="screen" id="s-intro">
-    <div class="step-label" id="intro-condo">&nbsp;</div>
-    <h1>Que mercado você quer no seu prédio?</h1>
-    <p class="lead">Estamos avaliando abrir um mercado 24 horas aqui no condomínio. Antes de decidir o que colocar nas prateleiras, queremos ouvir quem mora aqui.</p>
-    <p class="lead">São 2 minutos e o que você marcar entra de verdade na lista de compras.</p>
+  <!-- ====== ABERTURA ====== -->
+  <section class="screen" id="s-intro" aria-labelledby="intro-titulo">
+    <div class="hero">
+      <p class="hero-condo" id="intro-condo">&nbsp;</p>
+      <h1 id="intro-titulo">Que mercado você quer no seu prédio?</h1>
+      <p class="hero-frase">Antes de decidir o que vai nas prateleiras, queremos ouvir quem mora aqui.</p>
+    </div>
 
     <div id="promo-box"></div>
 
@@ -59,76 +64,106 @@
       <button type="button" id="ja-respondeu-btn">abrir meu mercado</button>
     </div>
 
+    <div class="tempo">
+      <div class="tempo-num"><b>6</b><span>perguntas</span></div>
+      <div class="tempo-sep" aria-hidden="true"></div>
+      <div class="tempo-num"><b>2</b><span>minutos</span></div>
+    </div>
+
+    <section class="secao">
+      <p class="secao-olho calmo">O que vamos perguntar</p>
+      <ol class="roteiro">
+        <li><b>Quando</b> você desceria pra comprar</li>
+        <li><b>O que</b> você colocaria numa cesta de R$ 100</li>
+        <li><b>Quais marcas</b> você faz questão</li>
+        <li><b>Se</b> você quer o mercado aqui</li>
+      </ol>
+    </section>
+
     <div class="cupom-teaser">
       <span aria-hidden="true">🎟️</span>
       <div>
-        <b>Quem responder ganha 10% de desconto</b>
-        <span>Na primeira compra, assim que o mercado abrir. O cupom aparece no final.</span>
+        <b>Quem se identificar ganha 10% de desconto</b>
+        <span>Na primeira compra, quando o mercado abrir. Responder sem se identificar também vale.</span>
       </div>
     </div>
-
-    <div class="recap">
-      <h3>O que vamos perguntar</h3>
-      <ul>
-        <li>Quando você desceria pra comprar</li>
-        <li>O que você colocaria numa cesta de R$ 100</li>
-        <li>Quais marcas você faz questão</li>
-        <li>Se você quer o mercado aqui</li>
-      </ul>
-    </div>
   </section>
 
-  <section class="screen" id="s-momento" hidden>
-    <div class="step-label">Pergunta 1 de 6</div>
-    <h2>Em que momento você desceria pra comprar?</h2>
+  <!-- ====== 1. MOMENTOS ====== -->
+  <section class="screen" id="s-momento" hidden aria-labelledby="momento-titulo">
+    <p class="step-label">Pergunta 1 de 6</p>
+    <h2 id="momento-titulo">Em que momento você desceria pra comprar?</h2>
     <p class="lead">Marque todos que acontecem com você. Isso define o que fica em estoque e em que horário repomos.</p>
-    <div class="opts" id="opts-momento"></div>
+    <div class="opts" id="opts-momento" role="group" aria-labelledby="momento-titulo"></div>
   </section>
 
-  <section class="screen" id="s-cesta" hidden>
-    <div class="step-label">Pergunta 2 de 6</div>
-    <h2>Você tem R$ 100 pra gastar num mês. Monte a cesta.</h2>
-    <p class="lead">Pense num mês inteiro de compras de última hora aqui no prédio. Escolha só o que você <b>realmente compraria</b> — o limite é de propósito, é ele que mostra o que importa de verdade.</p>
-    <div class="budget">
-      <div class="budget-row">
-        <b id="budget-left">R$ 100,00</b>
-        <small id="budget-count">nenhum item escolhido</small>
+  <!-- ====== 2. CESTA ====== -->
+  <section class="screen" id="s-cesta" hidden aria-labelledby="cesta-titulo">
+    <p class="step-label">Pergunta 2 de 6</p>
+    <h2 id="cesta-titulo">Monte sua cesta Village</h2>
+    <p class="lead">Você tem <b>R$ 100</b> para escolher o que realmente compraria.</p>
+    <p class="nota-limite">O limite é de propósito: escolha o que não poderia faltar no mercado do seu condomínio. Não é cupom nem crédito — é só um jeito de você priorizar.</p>
+
+    <div class="orc-sentinela" id="orc-sentinela" aria-hidden="true"></div>
+    <div class="orcamento" id="orcamento">
+      <div class="orc-linha">
+        <div class="orc-bloco">
+          <b id="budget-left">R$ 0,00</b>
+          <span>usados</span>
+        </div>
+        <div class="orc-bloco orc-dir">
+          <b id="orc-livre">R$ 100,00</b>
+          <span>disponíveis</span>
+        </div>
       </div>
       <div class="meter" id="budget-meter"><span style="width:0"></span></div>
+      <p class="orc-nota" id="budget-count" role="status" aria-live="polite">Nenhum item escolhido ainda.</p>
     </div>
+
     <div id="catalogo"></div>
+
     <div class="faltou">
-      <b>Faltou alguma coisa?</b>
-      <span>Escreve o que você compraria e não está na lista acima. Pode ser produto ou marca.</span>
-      <input id="f-faltou" type="text" placeholder="Ex: cerveja Therezópolis, pão francês, fralda" autocomplete="off">
+      <label for="f-faltou"><b>Faltou alguma coisa?</b></label>
+      <span id="f-faltou-ajuda">Escreve o que você compraria e não está na lista acima. Pode ser produto ou marca.</span>
+      <input id="f-faltou" type="text" placeholder="Ex: cerveja Therezópolis, pão francês, fralda"
+             autocomplete="off" aria-describedby="f-faltou-ajuda">
     </div>
   </section>
 
-  <section class="screen" id="s-marcas" hidden>
-    <div class="step-label">Pergunta 3 de 6</div>
-    <h2>Tem marca que você faz questão?</h2>
-    <p class="lead">Perguntamos só sobre o que você escolheu. <b>Pode marcar mais de uma</b> — se tanto faz, marca "Tanto faz".</p>
+  <!-- ====== 3. MARCAS ====== -->
+  <section class="screen" id="s-marcas" hidden aria-labelledby="marcas-titulo">
+    <p class="step-label">Pergunta 3 de 6</p>
+    <h2 id="marcas-titulo">Agora queremos acertar nas marcas.</h2>
+    <p class="lead">Conte quais marcas você prefere <b>nos produtos que você escolheu</b>. Pode marcar mais de uma. Se tanto faz, é só dizer.</p>
     <div id="marcas-lista"></div>
   </section>
 
-  <section class="screen" id="s-quer" hidden>
-    <div class="step-label">Pergunta 4 de 6</div>
-    <h2>E aí, você quer o mercado aqui?</h2>
+  <!-- ====== 4. QUER ====== -->
+  <section class="screen" id="s-quer" hidden aria-labelledby="quer-titulo">
+    <p class="step-label">Pergunta 4 de 6</p>
+    <h2 id="quer-titulo">E aí, você quer o mercado aqui?</h2>
     <p class="lead">Resposta sincera ajuda mais que resposta simpática. O síndico vai ver o número real.</p>
-    <div class="opts" id="opts-quer"></div>
+    <div class="opts" id="opts-quer" role="group" aria-labelledby="quer-titulo"></div>
   </section>
 
-  <section class="screen" id="s-fluxo" hidden>
-    <div class="step-label">Pergunta 5 de 6</div>
-    <h2>Com que frequência você usaria?</h2>
+  <!-- ====== 5. FREQUÊNCIA ====== -->
+  <section class="screen" id="s-fluxo" hidden aria-labelledby="fluxo-titulo">
+    <p class="step-label">Pergunta 5 de 6</p>
+    <h2 id="fluxo-titulo">Com que frequência você usaria?</h2>
     <p class="lead">É isso que define o tamanho da loja e quantas vezes por semana a gente repõe.</p>
-    <div class="opts" id="opts-freq"></div>
+    <div class="opts" id="opts-freq" role="group" aria-labelledby="fluxo-titulo"></div>
   </section>
 
-  <section class="screen" id="s-contato" hidden>
-    <div class="step-label">Último passo</div>
-    <h2>Ganhe 10% de desconto</h2>
-    <p class="lead">Para receber seu cupom de 10%, faça o cadastro abaixo. Se preferir não se identificar, é só enviar sem o cupom — sua pesquisa vale do mesmo jeito.</p>
+  <!-- ====== 6. IDENTIFICAÇÃO (opcional) ====== -->
+  <section class="screen" id="s-contato" hidden aria-labelledby="contato-titulo">
+    <p class="step-label">Pergunta 6 de 6</p>
+    <h2 id="contato-titulo">Quer seus 10% de desconto?</h2>
+
+    <div class="escolha-envio">
+      <p><b>Sua pesquisa já está pronta.</b> Você pode enviar agora, sem se identificar — ela conta do mesmo jeito.</p>
+      <p>Se preencher nome, bloco e apartamento, sai também um <b>cupom de 10%</b> para a primeira compra.</p>
+    </div>
+
     <div class="field">
       <label for="f-nome">Seu nome</label>
       <input id="f-nome" type="text" placeholder="Maria Andrade" autocomplete="name">
@@ -151,13 +186,15 @@
       <input type="checkbox" id="f-lgpd">
       <span>Autorizo a Village Market a usar meus dados para emitir o cupom e enviar avisos sobre o mercado deste condomínio. Posso pedir a exclusão a qualquer momento.</span>
     </label>
-    <button type="button" class="pular" id="btn-pular">Enviar sem o cupom</button>
+
+    <button type="button" class="pular" id="btn-pular">Prefiro enviar sem me identificar</button>
     <p class="miudas">Cupom de 10% válido na primeira compra, por 60 dias a partir da inauguração. Máximo de 2 cupons por apartamento. Não acumulativo com outras promoções.</p>
   </section>
 
-  <section class="screen" id="s-done" hidden>
+  <!-- ====== FIM ====== -->
+  <section class="screen" id="s-done" hidden aria-labelledby="done-titulo">
     <div class="done-mark" aria-hidden="true">✓</div>
-    <h2>Pronto. Obrigado!</h2>
+    <h2 id="done-titulo">Pronto. Obrigado!</h2>
     <p class="lead" id="done-texto">Sua resposta entrou na contagem do condomínio.</p>
 
     <div class="aviso aviso-erro" id="erro-envio" hidden>
@@ -182,11 +219,11 @@
       Este apartamento já usou os 2 cupons disponíveis — o limite vale por unidade, não por morador. Sua resposta foi registrada normalmente e continua valendo na pesquisa.
     </div>
 
-    <div class="card" id="ir-app" style="margin-top:24px; background:var(--surface); border:1px solid var(--line); border-radius:17px; padding:20px; box-shadow:var(--shadow)">
-      <h3 style="font-size:15.5px; font-weight:700">Agora o app é seu</h3>
-      <p class="lead" style="font-size:14px; margin-top:6px">Peça o que faltar na prateleira, avise um problema e acompanhe seu cupom — tudo por aqui.</p>
-      <a class="btn btn-primary" id="btn-abrir-app" href="app.html" style="width:100%; margin-top:14px">Abrir meu mercado</a>
-    </div>
+    <section class="secao" id="ir-app">
+      <p class="secao-olho">Agora o app é seu</p>
+      <h3>Peça o que faltar, avise um problema, acompanhe seu cupom</h3>
+      <a class="btn btn-primary btn-cheio" id="btn-abrir-app" href="app.html">Abrir meu mercado</a>
+    </section>
 
     <div class="recap" id="recap-box"></div>
 
@@ -196,11 +233,11 @@
     </div>
   </section>
 
-</div>
+</main>
 
 <div class="actionbar" id="actionbar">
   <div class="actionbar-in">
-    <button type="button" class="btn btn-back" id="btn-voltar" hidden aria-label="Voltar">←</button>
+    <button type="button" class="btn btn-back" id="btn-voltar" hidden aria-label="Voltar para a pergunta anterior">←</button>
     <button type="button" class="btn btn-primary" id="btn-avancar">Começar</button>
   </div>
 </div>
@@ -359,9 +396,9 @@ if (configOk && window.supabase) {
 async function carregarCondominio() {
   if (!sb) { el("top-condo").textContent = "modo de teste"; return; }
   try {
-    var r = await sb.from("condominios")
-      .select("id,slug,nome,cidade,unidades")
-      .eq("slug", SLUG).eq("ativo", true).maybeSingle();
+    /* R4: o público não lê a tabela condominios. Pergunta pelo slug e
+       recebe de volta só os campos que esta tela usa. */
+    var r = await sb.rpc("condominio_publico", { p_slug: SLUG });
     if (r.error) throw r.error;
     if (!r.data) { el("aviso-condo").hidden = false; el("top-condo").textContent = "—"; return; }
     CONDO = r.data;
@@ -378,12 +415,10 @@ async function carregarCondominio() {
 async function carregarPromocao() {
   if (!sb || !CONDO) return;
   try {
-    var r = await sb.from("promocoes")
-      .select("titulo,texto,condominio_id")
-      .or("condominio_id.is.null,condominio_id.eq." + CONDO.id)
-      .order("criado_em", { ascending: false }).limit(1);
-    if (r.error || !r.data || !r.data.length) return;
-    var p = r.data[0];
+    /* R4: idem para a promoção — a função já devolve a que está no ar */
+    var r = await sb.rpc("promocao_ativa", { p_slug: SLUG });
+    if (r.error || !r.data || !r.data.titulo) return;
+    var p = r.data;
     var box = el("promo-box");
     var d = document.createElement("div");
     d.className = "promo";
@@ -422,8 +457,11 @@ function montarMomentos() {
   });
 }
 
+var TILES = [];   /* referência aos azulejos, para reavaliar o que ainda cabe */
+
 function montarCatalogo() {
   var box = el("catalogo"); box.textContent = "";
+  TILES = [];
   CATS.forEach(function (cat) {
     var h = document.createElement("div");
     h.className = "catlabel"; h.textContent = cat.nome;
@@ -433,32 +471,96 @@ function montarCatalogo() {
       var b = document.createElement("button");
       b.type = "button"; b.className = "item";
       b.setAttribute("aria-pressed", R.cesta.indexOf(p.id) > -1 ? "true" : "false");
-      var n = document.createElement("span"); n.textContent = p.n;
+
+      var n = document.createElement("span");
+      n.className = "item-n"; n.textContent = p.n;
+
+      var aviso = document.createElement("span");
+      aviso.className = "item-aviso"; aviso.textContent = "não cabe no saldo"; aviso.hidden = true;
+
+      var rod = document.createElement("span");
+      rod.className = "item-rod";
       var pr = document.createElement("span"); pr.className = "preco"; pr.textContent = brl(p.p);
-      b.appendChild(n); b.appendChild(pr);
+      var ctrl = document.createElement("span");
+      ctrl.className = "item-ctrl"; ctrl.setAttribute("aria-hidden", "true");
+      rod.appendChild(pr); rod.appendChild(ctrl);
+
+      b.appendChild(n); b.appendChild(aviso); b.appendChild(rod);
+
       b.addEventListener("click", function () {
         var i = R.cesta.indexOf(p.id);
-        if (i > -1) { R.cesta.splice(i, 1); b.setAttribute("aria-pressed", "false"); }
-        else { R.cesta.push(p.id); b.setAttribute("aria-pressed", "true"); }
+        if (i > -1) {
+          R.cesta.splice(i, 1);
+          b.setAttribute("aria-pressed", "false");
+        } else {
+          var livre = TETO - total();
+          if (p.p > livre + 0.001) { avisarNaoCabe(p, livre); return; }  /* o teto de R$100 continua sendo o teto */
+          R.cesta.push(p.id);
+          b.setAttribute("aria-pressed", "true");
+        }
         salvar(); atualizarOrcamento(); atualizarAcao();
       });
+
+      TILES.push({ p: p, el: b, aviso: aviso, ctrl: ctrl });
       g.appendChild(b);
     });
     box.appendChild(g);
   });
+  atualizarCabem();
+}
+
+/* marca o que ainda cabe no que sobrou. Não mexe na cesta, só na aparência. */
+function atualizarCabem() {
+  var livre = TETO - total();
+  TILES.forEach(function (t) {
+    var escolhido = R.cesta.indexOf(t.p.id) > -1;
+    var cabe = escolhido || t.p.p <= livre + 0.001;
+    t.el.classList.toggle("nao-cabe", !cabe);
+    /* não é "desabilitado": tocar continua valendo e devolve a explicação.
+       O estado é lido em texto, dentro do próprio botão. */
+    t.aviso.hidden = cabe;
+    t.ctrl.textContent = escolhido ? "✓" : "+";
+  });
+}
+
+var pulsoTimer = null;
+function avisarNaoCabe(p, livre) {
+  var nota = el("budget-count");
+  nota.className = "orc-nota alerta";
+  nota.textContent = p.n + " custa " + brl(p.p) + " e sobraram " + brl(Math.max(0, livre)) +
+    ". Tire algo da cesta para abrir espaço.";
+
+  /* um anel âmbar no saldo, ligando a tentativa ao que sobrou.
+     Sob prefers-reduced-motion a animação não roda; a mensagem acima basta. */
+  var caixa = el("orcamento");
+  caixa.classList.remove("pulsou");
+  void caixa.offsetWidth;                 /* reinicia a animação se tocar de novo */
+  caixa.classList.add("pulsou");
+  if (pulsoTimer) clearTimeout(pulsoTimer);
+  pulsoTimer = setTimeout(function () { caixa.classList.remove("pulsou"); }, 900);
 }
 
 function atualizarOrcamento() {
-  var t = total(), resta = TETO - t;
-  var e = el("budget-left"), cont = el("budget-count"), meter = el("budget-meter");
-  e.textContent = resta >= 0 ? brl(resta) : "−" + brl(Math.abs(resta));
-  e.style.color = resta >= 0 ? "" : "var(--erro)";
-  var n = R.cesta.length;
-  cont.textContent = n === 0 ? "nenhum item escolhido"
-    : (resta >= 0 ? n + (n === 1 ? " item · sobra " : " itens · sobra ") + brl(resta)
-                  : n + " itens · passou do limite");
-  meter.className = "meter" + (resta < 0 ? " over" : "");
-  meter.firstElementChild.style.width = Math.min(100, (t / TETO) * 100) + "%";
+  var usado = total(), livre = TETO - usado, n = R.cesta.length;
+
+  el("budget-left").textContent = brl(usado);
+  el("orc-livre").textContent = brl(Math.max(0, livre));
+  el("orcamento").classList.toggle("cheio", livre <= 0.001);
+
+  var m = el("budget-meter");
+  m.className = "meter" + (usado > TETO ? " over" : "");
+  m.firstElementChild.style.width = Math.min(100, (usado / TETO) * 100) + "%";
+
+  /* Nota neutra de propósito: os R$ 100 são teto, não meta.
+     Parar em R$ 65 é uma resposta tão válida quanto usar tudo —
+     nada aqui pode empurrar a pessoa a preencher o saldo. */
+  var nota = el("budget-count");
+  nota.className = "orc-nota";
+  nota.textContent = n === 0
+    ? "Nenhum item selecionado."
+    : n + (n === 1 ? " item selecionado" : " itens selecionados");
+
+  atualizarCabem();
 }
 
 function sincronizarOutra(gid, wrap) {
@@ -544,6 +646,31 @@ function montarUnica(lista, campo, containerId) {
   });
 }
 
+/* o cabeçalho muda de altura quando a barra de etapas aparece e some,
+   e pode crescer em telas estreitas. Medir é mais seguro que chutar. */
+(function medirTopo() {
+  var topo = el("topo");
+  if (!topo) return;
+  function medir() {
+    document.documentElement.style.setProperty("--topo-h", topo.offsetHeight + "px");
+  }
+  medir();
+  if ("ResizeObserver" in window) new ResizeObserver(medir).observe(topo);
+  else window.addEventListener("resize", medir);
+})();
+
+/* ---------- orçamento compacto quando gruda no topo ----------
+   Um observador na sentinela, não um listener de scroll: não roda
+   layout a cada pixel e não pesa na rolagem dos 31 produtos. */
+(function orcamentoCompacto() {
+  var sentinela = el("orc-sentinela"), caixa = el("orcamento");
+  if (!sentinela || !caixa || !("IntersectionObserver" in window)) return;
+  new IntersectionObserver(function (entradas) {
+    if (el("s-cesta").hidden) return;      /* tela escondida não tem altura: ignora */
+    caixa.classList.toggle("compacto", !entradas[0].isIntersecting);
+  }, { threshold: 0 }).observe(sentinela);
+})();
+
 /* ---------- campos do cadastro ---------- */
 (function () {
   el("f-faltou").addEventListener("input", function () { R.faltou = this.value; salvar(); });
@@ -575,25 +702,42 @@ function podeAvancar() {
   return true;
 }
 
+/* 6 marcas, uma por pergunta. Intro e tela final não são perguntas. */
+function atualizarPassos() {
+  var box = el("progress-bar");
+  if (!box.children.length) {
+    for (var i = 0; i < 6; i++) box.appendChild(document.createElement("i"));
+  }
+  var ehPergunta = passo >= 1 && passo <= 6;
+  box.hidden = !ehPergunta;
+  box.setAttribute("aria-valuenow", ehPergunta ? passo : 0);
+  Array.prototype.forEach.call(box.children, function (m, i) {
+    m.className = (i + 1 < passo) ? "feito" : (i + 1 === passo ? "agora" : "");
+  });
+}
+
 function atualizarAcao() {
   var btn = el("btn-avancar"), voltar = el("btn-voltar"), id = STEPS[passo];
   voltar.hidden = (passo === 0 || id === "s-done");
   btn.disabled = !podeAvancar();
   if (enviando) btn.textContent = "Enviando…";
   else if (id === "s-intro") btn.textContent = "Começar";
-  else if (id === "s-contato") btn.textContent = "Enviar e receber cupom";
+  else if (id === "s-contato") btn.textContent = "Enviar e pegar meu cupom";
   else if (id === "s-done") btn.textContent = "Responder de novo";
   else if (id === "s-cesta" && total() > TETO) btn.textContent = "Passou de R$ 100";
   else if (id === "s-marcas" && !podeAvancar()) btn.textContent = "Escreva a marca";
   else btn.textContent = "Continuar";
-  el("progress-bar").style.width = ((passo / (STEPS.length - 1)) * 100) + "%";
+  atualizarPassos();
 }
 
 function mostrar() {
   STEPS.forEach(function (id, i) { el(id).hidden = (i !== passo); });
   var id = STEPS[passo];
   if (id === "s-momento") montarMomentos();
-  if (id === "s-cesta") { montarCatalogo(); atualizarOrcamento(); el("f-faltou").value = R.faltou || ""; }
+  if (id === "s-cesta") {
+    el("orcamento").classList.remove("compacto");
+    montarCatalogo(); atualizarOrcamento(); el("f-faltou").value = R.faltou || "";
+  }
   if (id === "s-marcas") montarMarcas();
   if (id === "s-quer")  montarUnica(QUER, "quer", "opts-quer");
   if (id === "s-fluxo") montarUnica(FREQ, "freq", "opts-freq");

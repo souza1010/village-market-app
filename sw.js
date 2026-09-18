@@ -6,18 +6,21 @@
      - arquivos: tenta a rede e guarda cópia; sem rede, usa o cache
    Nunca devolve HTML no lugar de um .js ou .css. */
 
-var CACHE = "village-market-v3";
+var CACHE = "village-market-v4";
+
+/* Só entra aqui o que o montar.py realmente publica.
+   O JavaScript das telas NÃO aparece nesta lista: ele vai embutido
+   dentro de cada HTML, não existe como arquivo separado no ar.
+   O montar.py confere esta lista a cada build e para se algo não existir. */
 var BASE = [
   "./",
   "index.html",
   "app.html",
   "painel.html",
   "estilo.css",
-  "app.js",
-  "app-morador.js",
-  "painel.js",
   "config.js",
   "manifest.webmanifest",
+  "icone.svg",
   "icone-192.png",
   "icone-512.png"
 ];
@@ -25,7 +28,13 @@ var BASE = [
 self.addEventListener("install", function (e) {
   e.waitUntil(
     caches.open(CACHE)
-      .then(function (c) { return c.addAll(BASE).catch(function () {}); })
+      .then(function (c) {
+        // um a um, de propósito: se um arquivo falhar, os outros continuam
+        // guardados. Com addAll, um só erro descarta a lista inteira em silêncio.
+        return Promise.all(BASE.map(function (arq) {
+          return c.add(arq).catch(function () {});
+        }));
+      })
       .then(function () { return self.skipWaiting(); })
   );
 });
@@ -62,7 +71,12 @@ self.addEventListener("fetch", function (e) {
           return res;
         })
         .catch(function () {
-          return caches.match(req).then(function (hit) {
+          // Sem internet. O morador abre o link com o condomínio na URL
+          // (app.html?c=aurora), mas o cache guardou "app.html" e mais nada.
+          // ignoreSearch manda procurar pelo nome da página, deixando de
+          // lado o que vem depois do "?" — assim vale para qualquer
+          // condomínio, não só um. Sem isso, o app cairia na pesquisa.
+          return caches.match(req, { ignoreSearch: true }).then(function (hit) {
             return hit || caches.match("index.html");
           });
         })

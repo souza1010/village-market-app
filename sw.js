@@ -3,6 +3,8 @@
    Regras:
      - só cuida de arquivos do próprio site (nunca do Supabase nem de CDN)
      - navegação: tenta a rede, cai no cache, por último mostra o index
+     - se o app mudou de endereço (a rede responde com redirecionamento),
+       entrega o redirecionamento ao navegador e se desinstala daqui
      - arquivos: tenta a rede e guarda cópia; sem rede, usa o cache
    Nunca devolve HTML no lugar de um .js ou .css. */
 
@@ -11,7 +13,7 @@
    caminho onde este app está publicado: ele só lê e só apaga o que é dele. */
 var ESCOPO = self.registration.scope;
 var PREFIXO = "village360:" + new URL(ESCOPO).pathname + ":";
-var CACHE = PREFIXO + "v5";
+var CACHE = PREFIXO + "v6";
 
 /* Só entra aqui o que o montar.py realmente publica.
    O JavaScript das telas NÃO aparece nesta lista: ele vai embutido
@@ -78,6 +80,21 @@ self.addEventListener("activate", function (e) {
   );
 });
 
+/* O app mudou de endereço (domínio próprio): o endereço antigo passou a
+   responder com redirecionamento. Aqui não há mais nada para servir —
+   apaga o cache deste app e sai. No endereço novo, a página instala o
+   service worker de lá, do zero. Se um dia isso disparar sem mudança de
+   endereço, o custo é só reinstalar: a página registra o sw.js de novo. */
+function desinstalar() {
+  return caches.keys()
+    .then(function (nomes) {
+      return Promise.all(nomes.map(function (n) {
+        return n.indexOf(PREFIXO) === 0 ? caches.delete(n) : null;
+      }));
+    })
+    .then(function () { return self.registration.unregister(); });
+}
+
 /* Procura só no cache deste app — nunca no de outro projeto do domínio. */
 function doCache(k) {
   return caches.open(CACHE).then(function (c) { return c.match(k); });
@@ -106,10 +123,23 @@ self.addEventListener("fetch", function (e) {
   // navegador (se nada mudou, a resposta é um 304 rápido). Assim, depois de
   // um deploy, ninguém recebe página nova com CSS velho, e o cache deste app
   // nunca é regravado com uma cópia velha.
+  //
+  // redirect: "manual" — se o servidor mandar para outro endereço, o
+  // service worker NÃO segue sozinho: devolve o redirecionamento para o
+  // navegador, que leva o morador ao endereço novo. Seguindo sozinho (como
+  // a v5), a resposta vinda de outro endereço é recusada pelo navegador e a
+  // página não abre.
   if (navegacao) {
     e.respondWith(
-      fetch(req.url, { cache: "no-cache", credentials: "same-origin" })
+      fetch(req.url, { cache: "no-cache", credentials: "same-origin", redirect: "manual" })
         .then(function (res) {
+          if (res.type === "opaqueredirect") {
+            // só uma navegação de verdade pode devolver o redirecionamento
+            // ao navegador; um fetch de HTML feito pela página segue normal
+            if (req.mode !== "navigate") return fetch(req.url, { credentials: "same-origin" });
+            e.waitUntil(desinstalar());
+            return res;
+          }
           // só guarda resposta boa: como a chave é uma só para todos os
           // condomínios, uma página de erro guardada valeria para todos
           if (res && res.ok) guardar(k, res);

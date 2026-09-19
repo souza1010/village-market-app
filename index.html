@@ -246,6 +246,144 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 /* ============================================================
+   Village 360 — identidade do morador neste celular (R13a)
+
+   Quem autoriza é o BANCO, por um token secreto deste aparelho, criado
+   pelo banco no primeiro vínculo e entregue uma vez só. Bloco e
+   apartamento são dado de negócio, nunca senha.
+
+   Onde o token fica e por onde anda — regra dura (PROMPTs 036 e 037):
+     - só no localStorage deste domínio e na memória da página;
+     - só vai ao servidor no CORPO de sb.rpc(...) — o supabase-js manda
+       POST; o banco recusa qualquer outro método (03j);
+     - nunca em endereço, parâmetro, âncora, HTML, console ou log.
+   A suíte testes/teste-token-url.py confere isso no código.
+
+   Usado pela pesquisa (app.js) e pelo app (app-morador.js).
+   ============================================================ */
+(function () {
+"use strict";
+
+var PREFIXO = "vm_sessao_";
+var FORMATO = /^v360\.[A-Za-z0-9_-]{43}$/;
+
+function chave(slug) { return PREFIXO + (slug || "x"); }
+
+/* A sessão guardada: o segredo e, para a tela, a cópia do que o banco
+   disse sobre o grupo (bloco, ap, nome). Quem manda é sempre o banco. */
+function ler(slug) {
+  try {
+    var s = JSON.parse(localStorage.getItem(chave(slug)) || "null");
+    if (s && typeof s.t === "string" && FORMATO.test(s.t)) {
+      return { t: s.t, bloco: s.bloco || "", ap: s.ap || "", nome: s.nome || "" };
+    }
+  } catch (e) {}
+  return null;
+}
+
+function gravar(slug, segredo, grupo) {
+  if (typeof segredo !== "string" || !FORMATO.test(segredo)) return false;
+  grupo = grupo || {};
+  try {
+    localStorage.setItem(chave(slug), JSON.stringify({
+      t: segredo, bloco: grupo.bloco || "", ap: grupo.ap || "", nome: grupo.nome || ""
+    }));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function atualizarGrupo(slug, grupo) {
+  var s = ler(slug);
+  if (s && grupo) gravar(slug, s.t, grupo);
+}
+
+function esquecer(slug) {
+  try { localStorage.removeItem(chave(slug)); } catch (e) {}
+}
+
+function igual(a, b) {
+  return String(a || "").trim().toUpperCase().replace(/\s+/g, " ") ===
+         String(b || "").trim().toUpperCase().replace(/\s+/g, " ");
+}
+
+/* Primeiro vínculo: o banco cria o grupo e o aparelho e devolve o segredo
+   uma única vez. Devolve { ok, grupo } ou { ok: false, erro }. */
+async function vincular(sb, slug, dados, origem) {
+  if (!sb) return { ok: false, erro: "sem_conexao" };
+  try {
+    var r = await sb.rpc("morador_vincular", {
+      p_slug: slug,
+      p_dados: {
+        bloco: (dados.bloco || "").trim(),
+        ap: (dados.ap || "").trim(),
+        nome: (dados.nome || "").trim(),
+        origem: origem === "pesquisa" ? "pesquisa" : "app"
+      }
+    });
+    if (r.error) return { ok: false, erro: "sem_conexao" };
+    var d = r.data || {};
+    if (d.ok !== true || !gravar(slug, d.token, d.grupo)) {
+      return { ok: false, erro: d.erro || "falhou" };
+    }
+    return { ok: true, grupo: d.grupo || {} };
+  } catch (e) {
+    return { ok: false, erro: "sem_conexao" };
+  }
+}
+
+/* Confere com o banco se a sessão guardada ainda vale.
+   estado: "ok" (com grupo) · "sem" (nunca vinculou) · "expirou" (o banco
+   recusou: expirada, revogada ou desconhecida — apaga a cópia local) ·
+   "offline" (sem resposta: mantém a sessão para tentar depois). */
+async function conferir(sb, slug) {
+  var s = ler(slug);
+  if (!s) return { estado: "sem" };
+  if (!sb) return { estado: "offline", sessao: s };
+  try {
+    var r = await sb.rpc("morador_eu", { p_slug: slug, p_token: s.t });
+    if (r.error) return { estado: "offline", sessao: s };
+    var d = r.data || {};
+    if (d.ok === true) {
+      atualizarGrupo(slug, d.grupo);
+      return { estado: "ok", sessao: ler(slug), grupo: d.grupo || {} };
+    }
+    esquecer(slug);
+    return { estado: "expirou" };
+  } catch (e) {
+    return { estado: "offline", sessao: s };
+  }
+}
+
+/* Desliga este celular: o banco revoga o aparelho e a cópia local some. */
+async function sair(sb, slug) {
+  var s = ler(slug);
+  esquecer(slug);
+  if (!s || !sb) return;
+  try { await sb.rpc("morador_desconectar", { p_slug: slug, p_token: s.t }); } catch (e) {}
+}
+
+/* Resposta de função V2 que diz que a sessão não vale mais. */
+function recusada(d) {
+  return !!(d && d.ok === false && d.erro === "nao_autorizado");
+}
+
+window.VMIdentidade = {
+  ler: ler,
+  gravar: gravar,
+  esquecer: esquecer,
+  igual: igual,
+  vincular: vincular,
+  conferir: conferir,
+  sair: sair,
+  recusada: recusada
+};
+})();
+
+</script>
+<script>
+/* ============================================================
    Village Market — Cesta do Prédio
    Enquete do morador.
    ============================================================ */
@@ -385,6 +523,7 @@ function marcasDe(gid) {
 }
 
 /* ---------- Supabase ---------- */
+var ID = window.VMIdentidade;
 var sb = null;
 var configOk = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY);
 if (configOk && window.supabase) {
@@ -753,12 +892,15 @@ function mostrar() {
 }
 
 /* ---------- envio ---------- */
-function montarPayload() {
+/* O que a pesquisa manda. Identificação (nome, bloco, apartamento) NÃO
+   vai aqui: na resposta identificada ela vem do vínculo do aparelho, e na
+   anônima não existe. WhatsApp e consentimento só na identificada. */
+function montarPayload(identificada) {
   var cesta = R.cesta.map(function (id) {
     var p = produto(id);
     return p ? { id: p.id, nome: p.n, preco: p.p } : null;
   }).filter(Boolean);
-  return {
+  var d = {
     momentos: R.momentos,
     cesta: cesta,
     cesta_total: Number(total().toFixed(2)),
@@ -766,14 +908,33 @@ function montarPayload() {
     marcas_outra: R.marcasOutra,
     faltou: R.faltou,
     quer: R.quer,
-    freq: R.freq,
-    cadastrou: !!R.cadastrou,
-    nome: R.nome,
-    bloco: R.bloco,
-    ap: R.ap,
-    whatsapp: R.zap,
-    lgpd: !!R.lgpd
+    freq: R.freq
   };
+  if (identificada) { d.whatsapp = R.zap; d.lgpd = !!R.lgpd; }
+  return d;
+}
+
+/* Resposta identificada (R13a): usa a sessão deste celular se ela é do
+   mesmo apartamento e nome; se não, faz o vínculo agora. O segredo só vai
+   no corpo do sb.rpc (POST). */
+async function sessaoDaPesquisa() {
+  var s = ID.ler(SLUG);
+  if (s && ID.igual(s.bloco, R.bloco) && ID.igual(s.ap, R.ap) && ID.igual(s.nome, R.nome)) return { ok: true };
+  if (s) await ID.sair(sb, SLUG);
+  return ID.vincular(sb, SLUG, { bloco: R.bloco, ap: R.ap, nome: R.nome }, "pesquisa");
+}
+
+async function enviarIdentificada() {
+  for (var tentativa = 0; tentativa < 2; tentativa++) {
+    var v = await sessaoDaPesquisa();
+    if (!v.ok) return { ok: false, erro: v.erro };
+    var s = ID.ler(SLUG);
+    var r = await sb.rpc("enviar_resposta_v2", { p_slug: SLUG, p_payload: montarPayload(true), p_token: s ? s.t : null });
+    if (r.error) throw r.error;
+    if (!ID.recusada(r.data)) return r.data;
+    ID.esquecer(SLUG);          // sessão vencida: refaz o vínculo uma vez
+  }
+  return { ok: false, erro: "falhou" };
 }
 
 async function enviar() {
@@ -783,13 +944,20 @@ async function enviar() {
   var resultado = null, erro = null;
   if (sb) {
     try {
-      var r = await sb.rpc("enviar_resposta", { p_slug: SLUG, p_payload: montarPayload() });
-      if (r.error) throw r.error;
-      resultado = r.data;
+      if (R.cadastrou) {
+        resultado = await enviarIdentificada();
+      } else {
+        // anônima de verdade: sem segredo e sem nenhum dado de identificação
+        var r = await sb.rpc("enviar_resposta_v2", { p_slug: SLUG, p_payload: montarPayload(false) });
+        if (r.error) throw r.error;
+        resultado = r.data;
+      }
       if (resultado && resultado.ok === false) {
-        erro = resultado.erro === "condominio_nao_encontrado"
-          ? "Condomínio não encontrado. Confira o link."
-          : "Tente de novo em instantes.";
+        erro = resultado.erro === "tente_mais_tarde"
+          ? "Muitas tentativas agora. Tente de novo daqui a pouco."
+          : resultado.erro === "sem_conexao"
+            ? "Verifique sua conexão e tente de novo."
+            : "Tente de novo em instantes.";
         resultado = null;
       }
     } catch (e) {
@@ -825,13 +993,11 @@ function mostrarFim(resultado, erro) {
     el("cupom-titulo").textContent = status === "repetido" ? "🎟️ Cupom já emitido para " : "🎟️ Cupom de ";
     el("cupom-dono").textContent = (R.nome || "").trim().split(" ")[0] +
       " · ap " + R.ap + (R.bloco ? " bloco " + R.bloco : "");
-    var restam = Math.max(0, (resultado.limite || 2) - (resultado.usados || 0));
-    el("cupom-contador").textContent =
-      "Cupom " + resultado.indice + " de " + resultado.limite + " do apartamento " + R.ap +
-      (R.bloco ? ", bloco " + R.bloco : "") + " · restam " + restam +
-      (restam === 1 ? " para outro morador" : " para outros moradores");
+    // o banco não conta mais quantos cupons o apartamento tem (vazamento
+    // fechado no R13a); o código também fica na aba Meus do app
+    el("cupom-contador").textContent = "Este código também fica guardado na aba Meus do app.";
     limparRascunho();
-  } else if (status === "limite") {
+  } else if (status === "cupom_indisponivel") {
     lim.hidden = false;
     limparRascunho();
   } else if (!erro) {
@@ -841,14 +1007,11 @@ function mostrarFim(resultado, erro) {
 
   var link = el("btn-abrir-app");
   if (link) link.href = "app.html?c=" + encodeURIComponent(SLUG);
-  // o rascunho some depois do envio; o apartamento fica, é o que o app usa
+  // o rascunho some depois do envio; a identificação do app é a sessão do
+  // aparelho (identidade.js), criada só na resposta identificada
   try {
     localStorage.setItem("vm_condo", SLUG);
-    if ((R.ap || "").trim()) {
-      localStorage.setItem("vm_eu_" + SLUG, JSON.stringify({
-        bloco: R.bloco || "", ap: R.ap || "", nome: R.nome || ""
-      }));
-    }
+    localStorage.removeItem("vm_eu_" + SLUG);
   } catch (e) {}
 
   montarRecap();
@@ -937,7 +1100,7 @@ if ("serviceWorker" in navigator) {
 (function atalhoApp() {
   var jaTem = false;
   try {
-    jaTem = !!localStorage.getItem("vm_eu_" + SLUG);
+    jaTem = !!ID.ler(SLUG) || !!localStorage.getItem("vm_eu_" + SLUG);
     if (!jaTem) {
       var r = JSON.parse(localStorage.getItem(RASCUNHO) || "null");
       jaTem = !!(r && r.ap);

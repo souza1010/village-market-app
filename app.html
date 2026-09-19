@@ -60,6 +60,7 @@
       <label for="eu-nome">Seu nome (opcional)</label>
       <input id="eu-nome" type="text" placeholder="Maria Andrade" autocomplete="name">
     </div>
+    <p class="msg" id="eu-msg" role="status" aria-live="polite"></p>
     <button type="button" class="btn btn-primary btn-cheio" id="eu-salvar">Salvar e continuar</button>
     <p class="miudas">Fica guardado só neste celular. Não pedimos senha, e-mail nem documento.</p>
   </section>
@@ -195,6 +196,144 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 /* ============================================================
+   Village 360 — identidade do morador neste celular (R13a)
+
+   Quem autoriza é o BANCO, por um token secreto deste aparelho, criado
+   pelo banco no primeiro vínculo e entregue uma vez só. Bloco e
+   apartamento são dado de negócio, nunca senha.
+
+   Onde o token fica e por onde anda — regra dura (PROMPTs 036 e 037):
+     - só no localStorage deste domínio e na memória da página;
+     - só vai ao servidor no CORPO de sb.rpc(...) — o supabase-js manda
+       POST; o banco recusa qualquer outro método (03j);
+     - nunca em endereço, parâmetro, âncora, HTML, console ou log.
+   A suíte testes/teste-token-url.py confere isso no código.
+
+   Usado pela pesquisa (app.js) e pelo app (app-morador.js).
+   ============================================================ */
+(function () {
+"use strict";
+
+var PREFIXO = "vm_sessao_";
+var FORMATO = /^v360\.[A-Za-z0-9_-]{43}$/;
+
+function chave(slug) { return PREFIXO + (slug || "x"); }
+
+/* A sessão guardada: o segredo e, para a tela, a cópia do que o banco
+   disse sobre o grupo (bloco, ap, nome). Quem manda é sempre o banco. */
+function ler(slug) {
+  try {
+    var s = JSON.parse(localStorage.getItem(chave(slug)) || "null");
+    if (s && typeof s.t === "string" && FORMATO.test(s.t)) {
+      return { t: s.t, bloco: s.bloco || "", ap: s.ap || "", nome: s.nome || "" };
+    }
+  } catch (e) {}
+  return null;
+}
+
+function gravar(slug, segredo, grupo) {
+  if (typeof segredo !== "string" || !FORMATO.test(segredo)) return false;
+  grupo = grupo || {};
+  try {
+    localStorage.setItem(chave(slug), JSON.stringify({
+      t: segredo, bloco: grupo.bloco || "", ap: grupo.ap || "", nome: grupo.nome || ""
+    }));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function atualizarGrupo(slug, grupo) {
+  var s = ler(slug);
+  if (s && grupo) gravar(slug, s.t, grupo);
+}
+
+function esquecer(slug) {
+  try { localStorage.removeItem(chave(slug)); } catch (e) {}
+}
+
+function igual(a, b) {
+  return String(a || "").trim().toUpperCase().replace(/\s+/g, " ") ===
+         String(b || "").trim().toUpperCase().replace(/\s+/g, " ");
+}
+
+/* Primeiro vínculo: o banco cria o grupo e o aparelho e devolve o segredo
+   uma única vez. Devolve { ok, grupo } ou { ok: false, erro }. */
+async function vincular(sb, slug, dados, origem) {
+  if (!sb) return { ok: false, erro: "sem_conexao" };
+  try {
+    var r = await sb.rpc("morador_vincular", {
+      p_slug: slug,
+      p_dados: {
+        bloco: (dados.bloco || "").trim(),
+        ap: (dados.ap || "").trim(),
+        nome: (dados.nome || "").trim(),
+        origem: origem === "pesquisa" ? "pesquisa" : "app"
+      }
+    });
+    if (r.error) return { ok: false, erro: "sem_conexao" };
+    var d = r.data || {};
+    if (d.ok !== true || !gravar(slug, d.token, d.grupo)) {
+      return { ok: false, erro: d.erro || "falhou" };
+    }
+    return { ok: true, grupo: d.grupo || {} };
+  } catch (e) {
+    return { ok: false, erro: "sem_conexao" };
+  }
+}
+
+/* Confere com o banco se a sessão guardada ainda vale.
+   estado: "ok" (com grupo) · "sem" (nunca vinculou) · "expirou" (o banco
+   recusou: expirada, revogada ou desconhecida — apaga a cópia local) ·
+   "offline" (sem resposta: mantém a sessão para tentar depois). */
+async function conferir(sb, slug) {
+  var s = ler(slug);
+  if (!s) return { estado: "sem" };
+  if (!sb) return { estado: "offline", sessao: s };
+  try {
+    var r = await sb.rpc("morador_eu", { p_slug: slug, p_token: s.t });
+    if (r.error) return { estado: "offline", sessao: s };
+    var d = r.data || {};
+    if (d.ok === true) {
+      atualizarGrupo(slug, d.grupo);
+      return { estado: "ok", sessao: ler(slug), grupo: d.grupo || {} };
+    }
+    esquecer(slug);
+    return { estado: "expirou" };
+  } catch (e) {
+    return { estado: "offline", sessao: s };
+  }
+}
+
+/* Desliga este celular: o banco revoga o aparelho e a cópia local some. */
+async function sair(sb, slug) {
+  var s = ler(slug);
+  esquecer(slug);
+  if (!s || !sb) return;
+  try { await sb.rpc("morador_desconectar", { p_slug: slug, p_token: s.t }); } catch (e) {}
+}
+
+/* Resposta de função V2 que diz que a sessão não vale mais. */
+function recusada(d) {
+  return !!(d && d.ok === false && d.erro === "nao_autorizado");
+}
+
+window.VMIdentidade = {
+  ler: ler,
+  gravar: gravar,
+  esquecer: esquecer,
+  igual: igual,
+  vincular: vincular,
+  conferir: conferir,
+  sair: sair,
+  recusada: recusada
+};
+})();
+
+</script>
+<script>
+/* ============================================================
    Village Market — o app do morador depois da pesquisa
    Abas: Início · Faltou · Problema · Meus
    ============================================================ */
@@ -228,28 +367,42 @@ function data(d) {
   catch (e) { return ""; }
 }
 
-/* ---------- de qual apartamento é quem está usando ---------- */
+/* ---------- quem está usando (R13a) ----------
+   Quem autoriza é o banco, pelo segredo deste aparelho (identidade.js).
+   EU é só a cópia, para a tela, do que o banco disse sobre o grupo. */
+var ID = window.VMIdentidade;
 var EU = { bloco: "", ap: "", nome: "" };
-
-function chaveEu() { return "vm_eu_" + (SLUG || "x"); }
+var SESSAO = null;
 
 function carregarEu() {
-  try {
-    var s = JSON.parse(localStorage.getItem(chaveEu()) || "null");
-    if (s && s.ap) EU = { bloco: s.bloco || "", ap: s.ap || "", nome: s.nome || "" };
-  } catch (e) {}
-  // quem acabou de responder a pesquisa já se identificou lá
-  if (!EU.ap) {
+  SESSAO = ID ? ID.ler(SLUG) : null;
+  EU = SESSAO ? { bloco: SESSAO.bloco, ap: SESSAO.ap, nome: SESSAO.nome }
+              : { bloco: "", ap: "", nome: "" };
+}
+function temEu() { return !!SESSAO; }
+function segredo() { return SESSAO ? SESSAO.t : null; }
+
+/* Só para preencher o formulário: o que este celular já digitou antes
+   (app antigo ou pesquisa). Não autoriza nada. */
+function sugestaoDoFormulario() {
+  var chaves = ["vm_eu_" + SLUG, "vm_rascunho_" + SLUG];
+  for (var i = 0; i < chaves.length; i++) {
     try {
-      var r = JSON.parse(localStorage.getItem("vm_rascunho_" + SLUG) || "null");
-      if (r && r.ap) EU = { bloco: r.bloco || "", ap: r.ap || "", nome: r.nome || "" };
+      var r = JSON.parse(localStorage.getItem(chaves[i]) || "null");
+      if (r && r.ap) return { bloco: r.bloco || "", ap: r.ap || "", nome: r.nome || "" };
     } catch (e) {}
   }
+  return { bloco: "", ap: "", nome: "" };
 }
-function salvarEu() {
-  try { localStorage.setItem(chaveEu(), JSON.stringify(EU)); } catch (e) {}
+
+/* O banco recusou a sessão (expirou ou foi desligada): some daqui e o
+   morador se identifica de novo, sem detalhe técnico. */
+function sessaoPerdida(destino) {
+  if (ID) ID.esquecer(SLUG);
+  carregarEu();
+  PENDENTE = destino || ABA || "inicio";
+  abrirIdentificacao("Por segurança, confirme de novo o seu apartamento neste celular.");
 }
-function temEu() { return !!(EU.ap || "").trim(); }
 
 /* SLUG: da URL, ou o último que este celular usou, ou o padrão */
 (function resolverSlug() {
@@ -266,10 +419,13 @@ if (CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY && window.supabase) {
 }
 var CONDO = null;
 
-async function rpc(nome, args) {
+/* Resposta do supabase-js no formato que as telas usam. As chamadas com
+   segredo são sempre sb.rpc(...) escritas por extenso — POST, segredo no
+   corpo — para a regra do M2 poder conferir cada uma. */
+async function resposta(promessa) {
   if (!sb) return { erro: "sem_conexao" };
   try {
-    var r = await sb.rpc(nome, args);
+    var r = await promessa;
     if (r.error) return { erro: r.error.message || "falhou" };
     return { dados: r.data };
   } catch (e) {
@@ -282,11 +438,11 @@ var ABAS = ["inicio", "faltou", "problema", "meus"];
 var ABA = "inicio";
 
 function irPara(alvo, forcarIdent) {
-  // as abas que gravam algo precisam saber o apartamento
+  // as abas que gravam algo precisam de um celular identificado
   if (!temEu() && (forcarIdent || alvo === "faltou" || alvo === "problema" || alvo === "meus")) {
-    mostrarPane("eu");
     PENDENTE = alvo;
     marcarTab(alvo);
+    abrirIdentificacao();
     return;
   }
   ABA = alvo;
@@ -317,25 +473,51 @@ Array.prototype.forEach.call(el("tabbar").children, function (b) {
 });
 
 /* ---------- tela de identificação ---------- */
-el("eu-salvar").addEventListener("click", function () {
-  var ap = el("eu-ap").value.trim();
-  if (!ap) { el("eu-ap").focus(); return; }
-  EU.ap    = ap;
-  EU.bloco = el("eu-bloco").value.trim();
-  EU.nome  = el("eu-nome").value.trim();
-  salvarEu();
+function abrirIdentificacao(aviso) {
+  var base = temEu() ? EU : sugestaoDoFormulario();
+  el("eu-bloco").value = base.bloco;
+  el("eu-ap").value = base.ap;
+  el("eu-nome").value = base.nome;
+  msg("eu-msg", aviso || "", aviso ? "erro" : "");
+  mostrarPane("eu");
+  window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+el("eu-salvar").addEventListener("click", async function () {
+  var dados = { bloco: el("eu-bloco").value.trim(), ap: el("eu-ap").value.trim(), nome: el("eu-nome").value.trim() };
+  if (!dados.ap) { el("eu-ap").focus(); return; }
   var destino = PENDENTE || "inicio";
+
+  // mesmo apartamento e mesmo nome de agora: nada a refazer
+  if (temEu() && ID.igual(dados.bloco, EU.bloco) && ID.igual(dados.ap, EU.ap) && ID.igual(dados.nome, EU.nome)) {
+    PENDENTE = null;
+    irPara(destino);
+    return;
+  }
+
+  this.disabled = true;
+  msg("eu-msg", "Salvando…");
+  if (temEu()) await ID.sair(sb, SLUG);   // trocou de apartamento: este celular começa de novo
+  var r = await ID.vincular(sb, SLUG, dados, "app");
+  this.disabled = false;
+  carregarEu();
+  if (!r.ok) {
+    msg("eu-msg", r.erro === "tente_mais_tarde"
+      ? "Muitas tentativas agora. Tente de novo daqui a pouco."
+      : r.erro === "sem_conexao"
+        ? "Sem conexão. Tente de novo em instantes."
+        : "Confira o bloco e o apartamento.", "erro");
+    return;
+  }
+  msg("eu-msg", "");
+  try { localStorage.removeItem("vm_eu_" + SLUG); } catch (e) {}
   PENDENTE = null;
   irPara(destino);
 });
 
 el("euchip-trocar").addEventListener("click", function () {
-  el("eu-bloco").value = EU.bloco;
-  el("eu-ap").value = EU.ap;
-  el("eu-nome").value = EU.nome;
   PENDENTE = "inicio";
-  mostrarPane("eu");
-  window.scrollTo({ top: 0, behavior: "instant" });
+  abrirIdentificacao();
 });
 
 /* ---------- condomínio ---------- */
@@ -370,7 +552,7 @@ async function carregarCondominio() {
     CONDO = r.data;
     el("hero-condo").textContent = CONDO.nome;
     document.title = "Village Market — " + CONDO.nome;
-    el("link-pesquisa").href = "./?c=" + SLUG;
+    el("link-pesquisa").href = "./?c=" + encodeURIComponent(SLUG);
   } catch (e) {
     el("hero-condo").textContent = "sem conexão";
   }
@@ -425,7 +607,14 @@ function renderInicio() {
     box.appendChild(a);
   }
 
-  /* quem é você */
+  renderChip();
+
+  carregarPromocao();
+  carregarPedidosDaHome();
+}
+
+/* quem é você */
+function renderChip() {
   var chip = el("euchip");
   if (temEu()) {
     chip.hidden = false;
@@ -433,9 +622,6 @@ function renderInicio() {
   } else {
     chip.hidden = true;
   }
-
-  carregarPromocao();
-  carregarPedidosDaHome();
 }
 
 function plural(n, um, muitos) { return n + " " + (n === 1 ? um : muitos); }
@@ -449,8 +635,8 @@ async function carregarPedidosDaHome() {
   secChegou.hidden = false;
   caixaChegou.appendChild(esqueleto(2));
 
-  var r = await rpc("listar_pedidos", { p_slug: SLUG, p_bloco: EU.bloco, p_ap: EU.ap });
-  var lista = r.dados || [];
+  var r = await listarPedidos();
+  var lista = r.lista;
   limpar(caixaChegou);
 
   var chegaram = lista.filter(function (p) { return p.status === "comprado"; }).slice(0, 3);
@@ -506,6 +692,17 @@ async function carregarPedidosDaHome() {
   }
 }
 
+/* A lista do Faltou: com sessão, a do grupo (sabe o que "eu apoiei");
+   sem sessão, a comunitária, sem nada privado. */
+async function listarPedidos() {
+  var r = temEu()
+    ? await resposta(sb && sb.rpc("listar_pedidos_v2", { p_slug: SLUG, p_token: segredo() }))
+    : await resposta(sb && sb.rpc("listar_pedidos_publico", { p_slug: SLUG }));
+  var d = r.dados;
+  if (temEu() && ID.recusada(d)) { ID.esquecer(SLUG); carregarEu(); renderChip(); }
+  return { lista: (d && d.ok && d.pedidos) || [], erro: r.erro };
+}
+
 /* sombra no topo só depois que a página rola */
 (function sombraDoTopo() {
   var topo = el("topo");
@@ -531,18 +728,20 @@ el("p-enviar").addEventListener("click", async function () {
   this.disabled = true;
   msg("p-msg", "Enviando…");
 
-  var r = await rpc("registrar_pedido", {
-    p_slug: SLUG,
-    p_payload: { texto: t, bloco: EU.bloco, ap: EU.ap, nome: EU.nome }
-  });
+  var r = await resposta(sb && sb.rpc("registrar_pedido_v2", {
+    p_slug: SLUG, p_token: segredo(), p_dados: { texto: t }
+  }));
   this.disabled = false;
 
   var d = r.dados;
   if (r.erro || !d) { msg("p-msg", "Não deu para enviar agora. Tente de novo.", "erro"); return; }
+  if (ID.recusada(d)) { msg("p-msg", ""); sessaoPerdida("faltou"); return; }
   if (d.ok === false) {
     msg("p-msg", d.erro === "teto_diario"
       ? "Você já mandou bastante coisa hoje. Amanhã libera de novo."
-      : "Não deu para enviar. Confira o texto.", "erro");
+      : d.erro === "tente_mais_tarde"
+        ? "Muitos apoios em pouco tempo. Tente de novo daqui a pouco."
+        : "Não deu para enviar. Confira o texto.", "erro");
     return;
   }
   campo.value = "";
@@ -560,9 +759,10 @@ async function carregarRank() {
   var box = limpar(el("rank"));
   box.appendChild(txt("div", "vazio", "Carregando…"));
 
-  var r = await rpc("listar_pedidos", { p_slug: SLUG, p_bloco: EU.bloco, p_ap: EU.ap });
+  var r = await listarPedidos();
+  if (!temEu()) { sessaoPerdida("faltou"); return; }
   limpar(box);
-  var lista = r.dados || [];
+  var lista = r.lista;
 
   if (!lista.length) {
     var v = txt("div", "vazio");
@@ -591,11 +791,12 @@ async function carregarRank() {
     b.appendChild(txt("small", null, p.eu_apoiei ? "eu quero" : "+ eu"));
     b.addEventListener("click", async function () {
       b.disabled = true;
-      var res = await rpc("apoiar_pedido", {
-        p_slug: SLUG, p_pedido: p.id, p_bloco: EU.bloco, p_ap: EU.ap
-      });
+      var res = await resposta(sb && sb.rpc("apoiar_pedido_v2", {
+        p_slug: SLUG, p_token: segredo(), p_pedido: p.id
+      }));
       b.disabled = false;
       var d = res.dados;
+      if (ID.recusada(d)) { sessaoPerdida("faltou"); return; }
       if (!d || d.ok === false) return;
       p.eu_apoiei = d.apoiou;
       p.apoios = d.apoios;
@@ -666,19 +867,20 @@ el("q-enviar").addEventListener("click", async function () {
   msg("q-msg", "Registrando…");
 
   var valor = el("q-valor").value.trim().replace(/\./g, "").replace(",", ".");
-  var r = await rpc("registrar_problema", {
+  var r = await resposta(sb && sb.rpc("registrar_problema_v2", {
     p_slug: SLUG,
-    p_payload: {
+    p_token: segredo(),
+    p_dados: {
       categoria: CAT, texto: t,
       valor: (CAT === "cobranca" && valor) ? valor : null,
-      bloco: EU.bloco, ap: EU.ap, nome: EU.nome,
       whatsapp: el("q-zap").value.trim()
     }
-  });
+  }));
   this.disabled = false;
 
   var d = r.dados;
   if (r.erro || !d) { msg("q-msg", "Não deu para registrar agora. Tente de novo.", "erro"); return; }
+  if (ID.recusada(d)) { msg("q-msg", ""); sessaoPerdida("problema"); return; }
   if (d.ok === false) {
     msg("q-msg", d.erro === "teto_diario"
       ? "Você já registrou bastante coisa hoje. Se for urgente, chame no WhatsApp."
@@ -729,11 +931,10 @@ async function carregarMeus() {
   var box = limpar(el("meus-conteudo"));
   box.appendChild(txt("div", "vazio", "Carregando…"));
 
-  var r = await rpc("meus_registros", {
-    p_slug: SLUG, p_bloco: EU.bloco, p_ap: EU.ap, p_nome: null
-  });
+  var r = await resposta(sb && sb.rpc("meus_registros_v2", { p_slug: SLUG, p_token: segredo() }));
   limpar(box);
   var d = r.dados;
+  if (ID.recusada(d)) { sessaoPerdida("meus"); return; }
   if (!d || d.ok === false) {
     box.appendChild(txt("div", "vazio", "Não deu para carregar agora. Tente de novo em instantes."));
     return;
@@ -743,8 +944,8 @@ async function carregarMeus() {
 
   /* cupons */
   var c1 = txt("div", "card");
-  c1.appendChild(txt("h3", null, "Cupons deste apartamento"));
-  c1.appendChild(txt("p", "cap", "Máximo de " + (d.limite_ap || 2) + " por unidade. Mostre o código na hora da compra."));
+  c1.appendChild(txt("h3", null, "Seus cupons"));
+  c1.appendChild(txt("p", "cap", "Mostre o código na hora da compra."));
   if (!d.cupons.length) {
     c1.appendChild(txt("div", "vazio", "Nenhum cupom ainda. Responda a pesquisa para ganhar 10% na primeira compra."));
   } else {
@@ -754,7 +955,6 @@ async function carregarMeus() {
       topo.appendChild(txt("span", "meu-cod", c.codigo));
       topo.appendChild(txt("span", "meu-data", data(c.criado_em)));
       m.appendChild(topo);
-      m.appendChild(txt("div", "meu-txt", c.nome));
       m.appendChild(txt("span", "selo " + (c.resgatado_em ? "" : "ok"),
         c.resgatado_em ? "já usado em " + data(c.resgatado_em) : "vale 10% na primeira compra"));
       c1.appendChild(m);
@@ -791,6 +991,8 @@ async function carregarMeus() {
   /* pedidos */
   var c3 = txt("div", "card");
   c3.appendChild(txt("h3", null, "O que você pediu"));
+  var apoiados = (d.apoios || []).map(function (p) { p.apoiado = true; return p; });
+  d.pedidos = d.pedidos.concat(apoiados);
   if (!d.pedidos.length) {
     c3.appendChild(txt("div", "vazio", "Nada ainda. A aba Faltou é onde isso começa."));
   } else {
@@ -802,6 +1004,7 @@ async function carregarMeus() {
       topo.appendChild(txt("span", "meu-data", p.apoios + "×"));
       m.appendChild(topo);
       m.appendChild(txt("span", "selo " + st.c, st.t));
+      if (p.apoiado) m.appendChild(txt("span", "selo", "você apoiou"));
       if (p.resposta) {
         var rp2 = txt("div", "meu-resp");
         rp2.appendChild(txt("b", null, "Resposta"));
@@ -835,9 +1038,17 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-/* ---------- início ---------- */
+/* ---------- início ----------
+   A sessão guardada vale até o banco dizer o contrário: a tela abre na
+   hora e a conferência roda em seguida. Recusada → some daqui. */
 irPara("inicio");
 carregarCondominio();
+if (ID && temEu()) {
+  ID.conferir(sb, SLUG).then(function (c) {
+    if (c.estado === "ok" || c.estado === "expirou") { carregarEu(); renderChip(); }
+    if (c.estado === "expirou" && ABA !== "inicio") sessaoPerdida(ABA);
+  });
+}
 })();
 
 </script>

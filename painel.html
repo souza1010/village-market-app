@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!-- CSP (PROMPT 039). O montar.py acrescenta a esta politica o hash de cada
      script embutido e para o build se faltar algum. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Gbj5ldN/WoiJk2E2+wr6YTxpigDfYKEDW6akMV6y0FU=' 'sha256-RG1x6I6TOns0y707GG31CVEhLOQbDhhJHvrq7YJ1iTQ=' 'sha256-ZnmZbzi0hU6Lluec1ttVYxLxfwzodXuncpwM168f6GA=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-tiC8n+4d1lYm6gvDV3W9F+JqSZR2VlSefFDzAvpTO+8=' 'sha256-KBP75GXBZn8gW315M+fcBs1xhg51Ch2uQizoDKCCU1s=' 'sha256-gTxP/hsyApdwcDcsW5p1DAoWFDuJsk/I1EWveeXICX4=' 'sha256-ZnmZbzi0hU6Lluec1ttVYxLxfwzodXuncpwM168f6GA=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Village Market — Painel</title>
 <meta name="robots" content="noindex">
@@ -165,6 +165,50 @@
         </tr></thead>
         <tbody id="tbody-lista"></tbody>
       </table>
+    </div>
+  </div>
+
+  <div class="block" id="bloco-condos">
+    <h3>Condomínios</h3>
+    <p class="sub">Os condomínios que esta conta administra. O endereço na URL é o que vai no link e no QR
+    da pesquisa: assim que o condomínio tem qualquer movimento, ele deixa de mudar. Antes disso, troque
+    só enquanto o link ainda não foi divulgado.</p>
+
+    <div class="tablewrap" style="margin-top:14px">
+      <table>
+        <thead><tr>
+          <th scope="col">Condomínio</th><th scope="col">Cidade</th>
+          <th scope="col">Unidades</th><th scope="col">Situação</th><th scope="col"></th>
+        </tr></thead>
+        <tbody id="tbody-condos"></tbody>
+      </table>
+    </div>
+
+    <p class="lead" id="condos-msg" style="font-size:14px" role="status" aria-live="polite"></p>
+
+    <div id="condos-novo" hidden>
+      <h4>Novo condomínio</h4>
+      <div class="dupla">
+        <div class="field" style="margin:0">
+          <label for="f-condo-nome">Nome</label>
+          <input id="f-condo-nome" type="text" placeholder="Residencial Parque da Lagoa" autocomplete="off">
+        </div>
+        <div class="field" style="margin:0">
+          <label for="f-condo-cidade">Cidade (opcional)</label>
+          <input id="f-condo-cidade" type="text" placeholder="Araucária, PR" autocomplete="off">
+        </div>
+      </div>
+      <div class="dupla" style="margin-top:12px">
+        <div class="field" style="margin:0">
+          <label for="f-condo-unidades">Unidades (apartamentos)</label>
+          <input id="f-condo-unidades" type="number" min="0" max="10000" placeholder="120" autocomplete="off">
+        </div>
+        <div class="field" style="margin:0">
+          <label for="f-condo-slug">Endereço na URL (opcional)</label>
+          <input id="f-condo-slug" type="text" placeholder="sai do nome, ex.: parque-da-lagoa" autocomplete="off">
+        </div>
+      </div>
+      <button type="button" class="btn btn-primary btn-sm" id="btn-condo-criar" style="margin-top:16px">Criar condomínio</button>
     </div>
   </div>
 
@@ -347,21 +391,35 @@ el("btn-sair").addEventListener("click", async function () {
 sb.auth.onAuthStateChange(function () { verificarSessao(); });
 
 /* ---------- dados ---------- */
-async function carregarCondominios() {
-  var r = await sb.from("condominios").select("id,slug,nome,cidade,unidades").order("nome");
-  if (r.error) return;
-  CONDOS = r.data || [];
+/* A lista vem da função do banco (03n): ela já filtra pelo que a conta pode
+   administrar e traz ativo, situação e se o condomínio já tem dado. */
+async function carregarCondominios(manter) {
+  var r = await sb.rpc("admin_condominios_listar");
+  var d = r.data || {};
+  if (r.error || d.ok !== true) return;
+  CONDOS = d.condominios || [];
+  window.VM_CONDOS = CONDOS;
+  window.VM_DONO = d.dono === true;
   var sel = el("sel-condo");
+  var antes = manter || (ATUAL && ATUAL.id);
   sel.textContent = "";
   CONDOS.forEach(function (c) {
     var o = document.createElement("option");
     o.value = c.id;
-    o.textContent = c.nome + " · " + c.unidades + " un.";
+    o.textContent = c.nome + " · " + c.unidades + " un." + (c.ativo ? "" : " · inativo");
     sel.appendChild(o);
   });
-  sel.addEventListener("change", function () { selecionar(this.value); });
-  if (CONDOS.length) selecionar(CONDOS[0].id);
+  if (!sel.dataset.ligado) {
+    sel.addEventListener("change", function () { selecionar(this.value); });
+    sel.dataset.ligado = "1";
+  }
+  window.dispatchEvent(new CustomEvent("vm:condos", { detail: CONDOS }));
+  if (!CONDOS.length) return;
+  var escolhido = antes && CONDOS.filter(function (c) { return c.id === antes; }).length ? antes : CONDOS[0].id;
+  sel.value = escolhido;
+  selecionar(escolhido);
 }
+window.VM_RECARREGAR_CONDOS = carregarCondominios;
 
 async function selecionar(id) {
   ATUAL = CONDOS.filter(function (c) { return c.id === id; })[0] || null;
@@ -920,27 +978,30 @@ ligarFiltro("filtros-ped", "ped");
 el("btn-status").addEventListener("click", async function () {
   if (!CONDO) return;
   this.disabled = true;
-  var r = await sb.from("condominios").update({
-    status_mercado: el("f-status").value,
-    aviso: el("f-aviso").value.trim() || null
-  }).eq("id", CONDO.id);
+  /* quem decide se esta conta pode é o banco (03n) */
+  var r = await sb.rpc("admin_condominio_editar", {
+    p_id: CONDO.id,
+    p_dados: {
+      status_mercado: el("f-status").value,
+      aviso: el("f-aviso").value.trim() || null
+    }
+  });
+  var d = r.data || {};
   this.disabled = false;
-  el("status-msg").textContent = r.error
-    ? "Não deu certo: " + r.error.message
+  el("status-msg").textContent = (r.error || d.ok !== true)
+    ? "Não deu certo. Confira e tente de novo."
     : "Salvo. Já aparece no topo do app dos moradores.";
-  if (!r.error) {
-    CONDO.status_mercado = el("f-status").value;
-    CONDO.aviso = el("f-aviso").value.trim() || null;
+  if (d.ok === true) {
+    CONDO.status_mercado = d.condominio.status_mercado;
+    CONDO.aviso = d.condominio.aviso;
   }
 });
 
-async function carregarSituacao() {
-  if (!sb || !CONDO) return;
-  var r = await sb.from("condominios")
-    .select("status_mercado,aviso").eq("id", CONDO.id).maybeSingle();
-  if (r.error || !r.data) return;
-  el("f-status").value = r.data.status_mercado || "pesquisa";
-  el("f-aviso").value = r.data.aviso || "";
+/* a situação já vem na listagem (03n): sem leitura direta da tabela */
+function carregarSituacao() {
+  if (!CONDO) return;
+  el("f-status").value = CONDO.status_mercado || "pesquisa";
+  el("f-aviso").value = CONDO.aviso || "";
 }
 
 /* ---------- ao vivo ---------- */
@@ -969,6 +1030,225 @@ window.addEventListener("vm:condo", function (e) {
   carregar();
   escutar();
 });
+})();
+
+</script>
+<script>
+/* ============================================================
+   Village 360 — condomínios no painel (03n, PROMPT 043)
+
+   Lista o que esta conta pode administrar, cria (só dono), edita
+   nome/cidade/unidades, ativa e inativa (só dono) e copia o link
+   público. Quem decide o que pode é o banco: a tela só pede.
+   O slug aparece porque é o endereço do condomínio; depois que o
+   condomínio tem dado, o banco trava a troca — link e QR impressos
+   continuam valendo.
+   Usa a mesma conexão do painel.js (window.VM_SB).
+   ============================================================ */
+(function () {
+"use strict";
+
+var LISTA = [];
+var EDITANDO = null;
+var ERROS = {
+  sem_login: "Sua sessão expirou. Entre de novo.",
+  sem_permissao: "Esta conta não pode fazer isso.",
+  so_dono: "Só o dono pode fazer isso.",
+  dados_invalidos: "Confira os campos: nome e cidade com 2 a 80 letras, unidades de 0 a 10000.",
+  slug_invalido: "Endereço inválido. Use letras minúsculas, números e hífen (3 a 40).",
+  slug_em_uso: "Já existe um condomínio com esse endereço.",
+  slug_travado: "Este condomínio já tem dados: o endereço não muda mais, para não quebrar links e QR.",
+  nao_encontrado: "Condomínio não encontrado."
+};
+
+function el(id) { return document.getElementById(id); }
+function limpar(n) { while (n.firstChild) n.removeChild(n.firstChild); return n; }
+function txt(tag, cls, t) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (t !== undefined && t !== null) e.textContent = t;
+  return e;
+}
+function campo(rotulo, id, valor, tipo) {
+  var f = txt("div", "field");
+  var l = txt("label", null, rotulo);
+  l.htmlFor = id;
+  var i = document.createElement("input");
+  i.id = id; i.type = tipo || "text"; i.autocomplete = "off";
+  i.value = valor === null || valor === undefined ? "" : String(valor);
+  f.appendChild(l); f.appendChild(i);
+  return f;
+}
+function msg(t, tipo) {
+  var m = el("condos-msg");
+  m.textContent = t || "";
+  m.style.color = tipo === "erro" ? "var(--erro, #b3261e)" : "";
+}
+function erroDe(d) { return ERROS[(d || {}).erro] || "Não deu para salvar agora."; }
+function linkDe(slug) {
+  return location.origin + location.pathname.replace(/painel\.html$/, "") + "?c=" + slug;
+}
+function copiar(texto, botao, feito) {
+  var antes = botao.textContent;
+  var pronto = function () {
+    botao.textContent = feito;
+    setTimeout(function () { botao.textContent = antes; }, 2000);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(texto).then(pronto, pronto);
+  else pronto();
+}
+
+/* ---------- lista ---------- */
+function desenhar() {
+  var corpo = limpar(el("tbody-condos"));
+  var dono = window.VM_DONO === true;
+  el("condos-novo").hidden = !dono;
+  if (!LISTA.length) {
+    var tr0 = txt("tr"), td0 = txt("td", null, "Nenhum condomínio ainda.");
+    td0.colSpan = 5; tr0.appendChild(td0); corpo.appendChild(tr0);
+    return;
+  }
+  LISTA.forEach(function (c) {
+    var tr = txt("tr");
+    var nome = txt("td");
+    nome.appendChild(txt("div", null, c.nome));
+    nome.appendChild(txt("div", "cap", c.slug + (c.em_uso ? " · endereço fixo" : "")));
+    tr.appendChild(nome);
+    tr.appendChild(txt("td", null, c.cidade));
+    tr.appendChild(txt("td", null, String(c.unidades) + " un."));
+    tr.appendChild(txt("td", null, (c.ativo ? "Ativo" : "Inativo") + " · " + c.respostas + " resp."));
+
+    var acao = txt("td");
+    var bLink = txt("button", "btn btn-ghost btn-sm", "Copiar link");
+    bLink.type = "button";
+    bLink.addEventListener("click", function () { copiar(linkDe(c.slug), bLink, "Link copiado"); });
+    acao.appendChild(bLink);
+
+    var bEd = txt("button", "btn btn-ghost btn-sm", EDITANDO === c.id ? "Fechar" : "Editar");
+    bEd.type = "button";
+    bEd.addEventListener("click", function () {
+      EDITANDO = EDITANDO === c.id ? null : c.id;
+      msg("");
+      desenhar();
+    });
+    acao.appendChild(bEd);
+    tr.appendChild(acao);
+    corpo.appendChild(tr);
+
+    if (EDITANDO === c.id) {
+      var trE = txt("tr");
+      var tdE = txt("td");
+      tdE.colSpan = 5;
+      tdE.appendChild(formEdicao(c));
+      trE.appendChild(tdE);
+      corpo.appendChild(trE);
+    }
+  });
+}
+
+function formEdicao(c) {
+  var dono = window.VM_DONO === true;
+  var box = txt("div", "block");
+  box.style.margin = "0";
+  box.appendChild(txt("h4", null, "Editar " + c.nome));
+  box.appendChild(campo("Nome", "ed-nome", c.nome));
+  box.appendChild(campo("Cidade", "ed-cidade", c.cidade));
+  box.appendChild(campo("Unidades (apartamentos)", "ed-unidades", c.unidades, "number"));
+
+  if (dono && !c.em_uso) {
+    box.appendChild(campo("Endereço na URL (mude só antes de divulgar o link)", "ed-slug", c.slug));
+  } else {
+    var p = txt("p", "cap", "Endereço na URL: " + c.slug +
+      (c.em_uso ? " — fixo, porque o condomínio já tem dados (links e QR entregues continuam valendo)."
+                : " — só o dono altera, e só antes de divulgar o link."));
+    box.appendChild(p);
+  }
+
+  var acoes = txt("div", "acoes");
+  acoes.style.marginTop = "12px";
+  var bSalvar = txt("button", "btn btn-primary btn-sm", "Salvar");
+  bSalvar.type = "button";
+  bSalvar.addEventListener("click", function () { salvar(c, bSalvar); });
+  acoes.appendChild(bSalvar);
+
+  if (dono) {
+    var bAtivo = txt("button", "btn btn-ghost btn-sm", c.ativo ? "Inativar" : "Reativar");
+    bAtivo.type = "button";
+    bAtivo.addEventListener("click", function () { alternarAtivo(c, bAtivo); });
+    acoes.appendChild(bAtivo);
+  }
+  box.appendChild(acoes);
+
+  if (c.ativo) {
+    box.appendChild(txt("p", "cap", "Inativar tira a pesquisa e o app deste condomínio do ar. " +
+      "Nada é apagado: respostas, cupons, pedidos e protocolos continuam guardados."));
+  }
+  return box;
+}
+
+async function salvar(c, botao) {
+  var dados = {
+    nome: el("ed-nome").value.trim(),
+    cidade: el("ed-cidade").value.trim(),
+    unidades: Number(el("ed-unidades").value || 0)
+  };
+  var campoSlug = el("ed-slug");
+  if (campoSlug && campoSlug.value.trim() !== c.slug) dados.slug = campoSlug.value.trim().toLowerCase();
+  botao.disabled = true;
+  var r = await window.VM_SB.rpc("admin_condominio_editar", { p_id: c.id, p_dados: dados });
+  botao.disabled = false;
+  var d = r.data || {};
+  if (r.error || d.ok !== true) { msg(erroDe(d), "erro"); return; }
+  msg("Salvo.");
+  EDITANDO = null;
+  recarregar(c.id);
+}
+
+async function alternarAtivo(c, botao) {
+  if (c.ativo && !window.confirm("Inativar " + c.nome + "? A pesquisa e o app deste condomínio saem do ar até você reativar. Nada é apagado.")) return;
+  botao.disabled = true;
+  var r = await window.VM_SB.rpc("admin_condominio_editar", { p_id: c.id, p_dados: { ativo: !c.ativo } });
+  botao.disabled = false;
+  var d = r.data || {};
+  if (r.error || d.ok !== true) { msg(erroDe(d), "erro"); return; }
+  msg(d.condominio.ativo ? "Reativado. Já está no ar." : "Inativado. Saiu do ar, nada foi apagado.");
+  EDITANDO = null;
+  recarregar(c.id);
+}
+
+async function criar() {
+  var nome = el("f-condo-nome").value.trim();
+  if (!nome) { msg("Escreva o nome do condomínio.", "erro"); el("f-condo-nome").focus(); return; }
+  var dados = { nome: nome, unidades: Number(el("f-condo-unidades").value || 0) };
+  var cidade = el("f-condo-cidade").value.trim();
+  if (cidade) dados.cidade = cidade;
+  var slug = el("f-condo-slug").value.trim().toLowerCase();
+  if (slug) dados.slug = slug;
+  var botao = el("btn-condo-criar");
+  botao.disabled = true;
+  msg("Criando…");
+  var r = await window.VM_SB.rpc("admin_condominio_criar", { p_dados: dados });
+  botao.disabled = false;
+  var d = r.data || {};
+  if (r.error || d.ok !== true) { msg(erroDe(d), "erro"); return; }
+  el("f-condo-nome").value = ""; el("f-condo-cidade").value = ""; el("f-condo-slug").value = "";
+  el("f-condo-unidades").value = "";
+  msg(d.condominio.nome + " criado. Link da pesquisa: " + linkDe(d.condominio.slug));
+  recarregar(d.condominio.id);
+}
+
+function recarregar(manter) {
+  if (window.VM_RECARREGAR_CONDOS) window.VM_RECARREGAR_CONDOS(manter);
+}
+
+el("btn-condo-criar").addEventListener("click", criar);
+
+/* a lista chega do painel.js, que chama admin_condominios_listar */
+window.addEventListener("vm:condos", function (e) {
+  LISTA = e.detail || [];
+  desenhar();
+});
+if (Array.isArray(window.VM_CONDOS)) { LISTA = window.VM_CONDOS; desenhar(); }
 })();
 
 </script>

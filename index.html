@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!-- CSP (PROMPT 039). O montar.py acrescenta a esta politica o hash de cada
      script embutido e para o build se faltar algum. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-W9akJLpGtxJcveVjBDO7E3A6PIS575EFU6tK7dJFaWM=' 'sha256-zKDXI+AYgoi7XdA5A4E1tbe64cIAIh+LwNIKPSRGEQA=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-YrgsdCeUOCem1dPycf/53OxgE/Y+IGj0YwG61tGsVhU=' 'sha256-zKDXI+AYgoi7XdA5A4E1tbe64cIAIh+LwNIKPSRGEQA=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Village Market — Cesta do Prédio</title>
 <meta name="description" content="Dois minutos para dizer o que não pode faltar no mercado do seu condomínio.">
@@ -278,7 +278,7 @@ function ler(slug) {
   try {
     var s = JSON.parse(localStorage.getItem(chave(slug)) || "null");
     if (s && typeof s.t === "string" && FORMATO.test(s.t)) {
-      return { t: s.t, bloco: s.bloco || "", ap: s.ap || "", nome: s.nome || "" };
+      return { t: s.t, bloco: s.bloco || "", ap: s.ap || "", nome: s.nome || "", nivel: s.nivel === 2 ? 2 : 1 };
     }
   } catch (e) {}
   return null;
@@ -289,7 +289,8 @@ function gravar(slug, segredo, grupo) {
   grupo = grupo || {};
   try {
     localStorage.setItem(chave(slug), JSON.stringify({
-      t: segredo, bloco: grupo.bloco || "", ap: grupo.ap || "", nome: grupo.nome || ""
+      t: segredo, bloco: grupo.bloco || "", ap: grupo.ap || "", nome: grupo.nome || "",
+      nivel: grupo.nivel === 2 ? 2 : 1
     }));
     return true;
   } catch (e) {
@@ -374,6 +375,7 @@ function recusada(d) {
 
 window.VMIdentidade = {
   ler: ler,
+  atualizar: atualizarGrupo,
   gravar: gravar,
   esquecer: esquecer,
   igual: igual,

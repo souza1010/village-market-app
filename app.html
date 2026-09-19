@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!-- CSP (PROMPT 039). O montar.py acrescenta a esta politica o hash de cada
      script embutido e para o build se faltar algum. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-W9akJLpGtxJcveVjBDO7E3A6PIS575EFU6tK7dJFaWM=' 'sha256-J0tRlKL9q6AkxnQ6YPg9G2GI80p6yqdHIibIOVbj3Yc=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-YrgsdCeUOCem1dPycf/53OxgE/Y+IGj0YwG61tGsVhU=' 'sha256-6WfLc6Xdu5+fCYlttMUbnJyzxZE31rK0UoAIMZdl1pM=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Village Market</title>
 <meta name="description" content="O mercado do seu condomínio: peça o que faltou, fale com a gente e acompanhe seu cupom.">
@@ -228,7 +228,7 @@ function ler(slug) {
   try {
     var s = JSON.parse(localStorage.getItem(chave(slug)) || "null");
     if (s && typeof s.t === "string" && FORMATO.test(s.t)) {
-      return { t: s.t, bloco: s.bloco || "", ap: s.ap || "", nome: s.nome || "" };
+      return { t: s.t, bloco: s.bloco || "", ap: s.ap || "", nome: s.nome || "", nivel: s.nivel === 2 ? 2 : 1 };
     }
   } catch (e) {}
   return null;
@@ -239,7 +239,8 @@ function gravar(slug, segredo, grupo) {
   grupo = grupo || {};
   try {
     localStorage.setItem(chave(slug), JSON.stringify({
-      t: segredo, bloco: grupo.bloco || "", ap: grupo.ap || "", nome: grupo.nome || ""
+      t: segredo, bloco: grupo.bloco || "", ap: grupo.ap || "", nome: grupo.nome || "",
+      nivel: grupo.nivel === 2 ? 2 : 1
     }));
     return true;
   } catch (e) {
@@ -324,6 +325,7 @@ function recusada(d) {
 
 window.VMIdentidade = {
   ler: ler,
+  atualizar: atualizarGrupo,
   gravar: gravar,
   esquecer: esquecer,
   igual: igual,
@@ -379,8 +381,8 @@ var SESSAO = null;
 
 function carregarEu() {
   SESSAO = ID ? ID.ler(SLUG) : null;
-  EU = SESSAO ? { bloco: SESSAO.bloco, ap: SESSAO.ap, nome: SESSAO.nome }
-              : { bloco: "", ap: "", nome: "" };
+  EU = SESSAO ? { bloco: SESSAO.bloco, ap: SESSAO.ap, nome: SESSAO.nome, nivel: SESSAO.nivel }
+              : { bloco: "", ap: "", nome: "", nivel: 0 };
 }
 function temEu() { return !!SESSAO; }
 function segredo() { return SESSAO ? SESSAO.t : null; }
@@ -945,6 +947,8 @@ async function carregarMeus() {
 
   el("meus-sub").textContent = "Apartamento " + EU.ap + (EU.bloco ? ", bloco " + EU.bloco : "") + ".";
 
+  box.appendChild(cardVerificacao());
+
   /* cupons */
   var c1 = txt("div", "card");
   c1.appendChild(txt("h3", null, "Seus cupons"));
@@ -1018,6 +1022,75 @@ async function carregarMeus() {
     });
   }
   box.appendChild(c3);
+}
+
+/* ---------- apartamento verificado (R13b) ----------
+   Opcional. O código impresso entregue no apartamento prova que o grupo
+   mora ali (nível 2). Vai só no corpo do sb.rpc (POST); o campo é
+   apagado no envio e o código não é guardado em lugar nenhum. */
+function cardVerificacao() {
+  var c = txt("div", "card");
+  if (EU.nivel === 2) {
+    c.appendChild(txt("h3", null, "Apartamento verificado ✓"));
+    c.appendChild(txt("p", "cap", "Confirmado pelo código entregue no apartamento."));
+    return c;
+  }
+  c.appendChild(txt("h3", null, "Confirmar o apartamento"));
+  c.appendChild(txt("p", "cap", "Recebeu um código impresso do seu apartamento? Digite aqui para confirmar que você mora nele. É opcional."));
+  var f = txt("div", "field");
+  var rot = txt("label", null, "Código do apartamento");
+  rot.htmlFor = "verif-codigo";
+  var campo = document.createElement("input");
+  campo.id = "verif-codigo";
+  campo.type = "text";
+  campo.autocomplete = "off";
+  campo.spellcheck = false;
+  campo.maxLength = 20;
+  campo.placeholder = "XXXX-XXXX-XXXX";
+  campo.setAttribute("autocapitalize", "characters");
+  f.appendChild(rot);
+  f.appendChild(campo);
+  var b = txt("button", "btn btn-primary btn-cheio", "Confirmar apartamento");
+  b.type = "button";
+  b.id = "verif-enviar";
+  var m = txt("p", "msg");
+  m.id = "verif-msg";
+  m.setAttribute("role", "status");
+  m.setAttribute("aria-live", "polite");
+  b.addEventListener("click", async function () {
+    var digitado = campo.value;
+    campo.value = "";
+    if (digitado.replace(/[^A-Za-z0-9]/g, "").length !== 12) {
+      m.className = "msg erro";
+      m.textContent = "São 12 letras e números, como no papel.";
+      campo.focus();
+      return;
+    }
+    b.disabled = true;
+    m.className = "msg";
+    m.textContent = "Conferindo…";
+    var r = await resposta(sb && sb.rpc("morador_verificar_apartamento", {
+      p_slug: SLUG, p_token: segredo(), p_codigo: digitado
+    }));
+    digitado = null;
+    b.disabled = false;
+    var d = r.dados;
+    if (ID.recusada(d)) { sessaoPerdida("meus"); return; }
+    if (d && d.ok === true) {
+      ID.atualizar(SLUG, d.grupo);
+      carregarEu();
+      carregarMeus();
+      return;
+    }
+    m.className = "msg erro";
+    m.textContent = r.erro ? "Sem conexão. Tente de novo em instantes."
+      : (d && d.erro === "tente_mais_tarde") ? "Muitas tentativas agora. Tente de novo mais tarde."
+      : "Não conferiu. Veja as letras e o apartamento e tente de novo.";
+  });
+  c.appendChild(f);
+  c.appendChild(b);
+  c.appendChild(m);
+  return c;
 }
 
 /* ---------- instalar ---------- */

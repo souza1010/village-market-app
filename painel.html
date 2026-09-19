@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!-- CSP (PROMPT 039). O montar.py acrescenta a esta politica o hash de cada
      script embutido e para o build se faltar algum. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Gbj5ldN/WoiJk2E2+wr6YTxpigDfYKEDW6akMV6y0FU=' 'sha256-RG1x6I6TOns0y707GG31CVEhLOQbDhhJHvrq7YJ1iTQ=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Gbj5ldN/WoiJk2E2+wr6YTxpigDfYKEDW6akMV6y0FU=' 'sha256-RG1x6I6TOns0y707GG31CVEhLOQbDhhJHvrq7YJ1iTQ=' 'sha256-ZnmZbzi0hU6Lluec1ttVYxLxfwzodXuncpwM168f6GA=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Village Market — Painel</title>
 <meta name="robots" content="noindex">
@@ -245,6 +245,36 @@
     </div>
     <button type="button" class="btn btn-primary" id="btn-promo" style="margin-top:16px">Publicar promoção</button>
     <p class="lead" id="promo-msg" style="font-size:14px"></p>
+  </div>
+
+  <div class="block" id="bloco-codigos">
+    <h3>Códigos dos apartamentos</h3>
+    <p class="sub">Um código por apartamento, para o morador confirmar no app que mora ali. Entregue impresso no apartamento. O código só aparece uma vez: se perder, gere outro (o anterior deixa de valer).</p>
+    <div class="field">
+      <label for="f-aptos">Apartamentos (um por linha: bloco/apartamento, ou só o apartamento)</label>
+      <textarea id="f-aptos" rows="4" placeholder="A/101&#10;A/102&#10;B/201" autocomplete="off"></textarea>
+    </div>
+    <button type="button" class="btn btn-primary btn-sm" id="btn-gerar-codigos">Gerar códigos</button>
+    <p class="lead" id="codigos-msg" style="font-size:14px" role="status" aria-live="polite"></p>
+    <div id="codigos-novos" hidden>
+      <p class="sub"><b>Anote ou copie agora.</b> Estes códigos não aparecem de novo.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Bloco</th><th>Apartamento</th><th>Código</th></tr></thead>
+          <tbody id="tbody-codigos-novos"></tbody>
+        </table>
+      </div>
+      <div class="acoes" style="margin-top:10px">
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-copiar-codigos">Copiar todos</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-esconder-codigos">Já anotei — esconder</button>
+      </div>
+    </div>
+    <div class="tablewrap" style="margin-top:14px">
+      <table>
+        <thead><tr><th>Bloco</th><th>Apartamento</th><th>Situação</th><th>Verificado</th><th>Data</th><th></th></tr></thead>
+        <tbody id="tbody-codigos"></tbody>
+      </table>
+    </div>
   </div>
 
 </div>
@@ -939,6 +969,166 @@ window.addEventListener("vm:condo", function (e) {
   carregar();
   escutar();
 });
+})();
+
+</script>
+<script>
+/* ============================================================
+   Village 360 — códigos dos apartamentos no painel (R13b, PROMPT 040)
+
+   Gera o código de ativação de cada apartamento, mostra o estado e
+   revoga. O texto do código chega UMA vez, na resposta da geração: fica
+   na tela até o operador esconder, e não é guardado em lugar nenhum.
+   A lista de estado nunca traz código nem hash (o banco não devolve).
+   Usa a mesma conexão do painel.js (window.VM_SB).
+   ============================================================ */
+(function () {
+"use strict";
+
+var CONDO = null;
+var ESTADOS = { disponivel: "Disponível", utilizado: "Utilizado", revogado: "Revogado", expirado: "Vencido" };
+
+function el(id) { return document.getElementById(id); }
+function limpar(n) { while (n.firstChild) n.removeChild(n.firstChild); return n; }
+function txt(tag, cls, t) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (t !== undefined && t !== null) e.textContent = t;
+  return e;
+}
+function quando(d) {
+  if (!d) return "—";
+  try { return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" }); }
+  catch (e) { return "—"; }
+}
+function msg(t, tipo) {
+  var m = el("codigos-msg");
+  m.textContent = t || "";
+  m.style.color = tipo === "erro" ? "var(--erro, #b3261e)" : "";
+}
+function nomeApto(a) { return (a.bloco ? "Bloco " + a.bloco + " · " : "") + "Ap " + a.ap; }
+
+/* "A/101", "a / 101" ou só "101" — um por linha */
+function lerLista(texto) {
+  var lista = [];
+  String(texto || "").split(/\r?\n/).forEach(function (linha) {
+    linha = linha.trim();
+    if (!linha) return;
+    var partes = linha.split("/");
+    if (partes.length >= 2) lista.push({ bloco: partes[0].trim(), ap: partes.slice(1).join("/").trim() });
+    else lista.push({ bloco: "", ap: linha });
+  });
+  return lista;
+}
+
+function esconderNovos() {
+  limpar(el("tbody-codigos-novos"));
+  el("codigos-novos").hidden = true;
+}
+
+async function carregar() {
+  var corpo = limpar(el("tbody-codigos"));
+  if (!CONDO || !window.VM_SB) return;
+  var r = await window.VM_SB.rpc("admin_codigos_apto_listar", { p_condominio: CONDO.id });
+  var d = r.data || {};
+  if (r.error || d.ok !== true) {
+    var tr0 = txt("tr"); var td0 = txt("td", null, "Não deu para carregar os códigos agora.");
+    td0.colSpan = 6; tr0.appendChild(td0); corpo.appendChild(tr0);
+    return;
+  }
+  if (!d.apartamentos.length) {
+    var tr1 = txt("tr"); var td1 = txt("td", null, "Nenhum código gerado ainda neste condomínio.");
+    td1.colSpan = 6; tr1.appendChild(td1); corpo.appendChild(tr1);
+    return;
+  }
+  d.apartamentos.forEach(function (a) {
+    var tr = txt("tr");
+    tr.appendChild(txt("td", null, a.bloco || "—"));
+    tr.appendChild(txt("td", null, a.ap));
+    tr.appendChild(txt("td", null, ESTADOS[a.estado] || a.estado));
+    tr.appendChild(txt("td", null, a.verificado ? "Sim" : "—"));
+    tr.appendChild(txt("td", null, a.estado === "utilizado" ? quando(a.usado_em) : "vence " + quando(a.expira_em)));
+    var acao = txt("td");
+    if (a.estado === "disponivel") {
+      var b = txt("button", "btn btn-ghost btn-sm", "Revogar");
+      b.type = "button";
+      b.addEventListener("click", function () { revogar(a, b); });
+      acao.appendChild(b);
+    }
+    tr.appendChild(acao);
+    corpo.appendChild(tr);
+  });
+}
+
+async function revogar(a, botao) {
+  var motivo = window.prompt("Por que revogar o código de " + nomeApto(a) + "? (ex.: entregue no apartamento errado)");
+  if (motivo === null) return;
+  botao.disabled = true;
+  var r = await window.VM_SB.rpc("admin_codigo_apto_revogar", {
+    p_condominio: CONDO.id, p_bloco: a.bloco || "", p_ap: a.ap, p_motivo: motivo
+  });
+  var d = r.data || {};
+  botao.disabled = false;
+  if (r.error || d.ok !== true) {
+    msg(d.erro === "motivo_obrigatorio" ? "Escreva o motivo (pelo menos 5 letras)." : "Não deu para revogar agora.", "erro");
+    return;
+  }
+  msg("Código de " + nomeApto(a) + " revogado. Gere outro quando precisar.");
+  carregar();
+}
+
+async function gerar() {
+  if (!CONDO) return;
+  var lista = lerLista(el("f-aptos").value);
+  if (!lista.length) { msg("Escreva pelo menos um apartamento.", "erro"); el("f-aptos").focus(); return; }
+  var botao = el("btn-gerar-codigos");
+  botao.disabled = true;
+  msg("Gerando…");
+  var r = await window.VM_SB.rpc("admin_codigos_apto_gerar", { p_condominio: CONDO.id, p_apartamentos: lista });
+  botao.disabled = false;
+  var d = r.data || {};
+  if (r.error || d.ok !== true) {
+    msg(d.erro === "dados_invalidos"
+      ? "Confira a lista: um apartamento por linha, até 500, no formato bloco/apartamento."
+      : "Não deu para gerar agora.", "erro");
+    return;
+  }
+  el("f-aptos").value = "";
+  var corpo = limpar(el("tbody-codigos-novos"));
+  d.codigos.forEach(function (c) {
+    var tr = txt("tr");
+    tr.appendChild(txt("td", null, c.bloco || "—"));
+    tr.appendChild(txt("td", null, c.ap));
+    tr.appendChild(txt("td", "codigo-apto", c.codigo));
+    corpo.appendChild(tr);
+  });
+  el("codigos-novos").hidden = false;
+  msg(d.codigos.length + (d.codigos.length === 1 ? " código gerado." : " códigos gerados.") +
+      " Anote agora: eles não aparecem de novo.");
+  carregar();
+}
+
+function copiarNovos() {
+  var linhas = Array.prototype.map.call(el("tbody-codigos-novos").children, function (tr) {
+    var c = tr.children;
+    return (c[0].textContent !== "—" ? "Bloco " + c[0].textContent + " · " : "") + "Ap " + c[1].textContent + ": " + c[2].textContent;
+  });
+  var t = linhas.join("\n");
+  var ok = function () { msg("Copiado. Cole num lugar seguro para imprimir e entregar."); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, ok);
+}
+
+el("btn-gerar-codigos").addEventListener("click", gerar);
+el("btn-copiar-codigos").addEventListener("click", copiarNovos);
+el("btn-esconder-codigos").addEventListener("click", function () { esconderNovos(); msg(""); });
+
+window.addEventListener("vm:condo", function (e) {
+  CONDO = e.detail || null;
+  esconderNovos();
+  msg("");
+  carregar();
+});
+if (window.VM_CONDO) { CONDO = window.VM_CONDO; carregar(); }
 })();
 
 </script>

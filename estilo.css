@@ -573,3 +573,21 @@ textarea{min-height:120px; resize:vertical; line-height:1.55}
 .cupom-fine{margin-top:var(--e4); font-size:12px; color:var(--muted); line-height:1.5}
 .sem-cupom{margin-top:var(--e6); border-radius:var(--r-lg); padding:var(--e5);
   background:var(--surface-2); font-size:14.5px; color:var(--muted); line-height:1.55}
+
+
+/* ---------- vitrine do condomínio (produtos com preço) ---------- */
+.vitrine{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));
+  gap:var(--e3); margin-top:var(--e5)}
+.vit-card{background:var(--surface); border:1px solid var(--line); border-radius:16px;
+  padding:12px; display:flex; flex-direction:column; gap:8px}
+.vit-foto{width:100%; aspect-ratio:1/1; object-fit:contain; background:var(--surface-2);
+  border-radius:12px}
+.vit-sem-foto{width:100%; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center;
+  background:var(--surface-2); border-radius:12px; color:var(--faint); font-size:11px; text-align:center; padding:8px}
+.vit-nome{font-size:13.5px; line-height:1.35}
+.vit-preco{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap}
+.vit-preco b{font-family:var(--fonte-display); font-size:19px; font-weight:800; letter-spacing:-.02em}
+.vit-antes{font-size:12px; color:var(--faint); text-decoration:line-through}
+.vit-selo{display:inline-flex; font-size:10.5px; font-weight:700; letter-spacing:.04em;
+  text-transform:uppercase; padding:3px 8px; border-radius:99px;
+  background:var(--amber-soft); color:var(--amber); align-self:flex-start}

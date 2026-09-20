@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!-- CSP (PROMPT 039). O montar.py acrescenta a esta politica o hash de cada
      script embutido e para o build se faltar algum. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-YrgsdCeUOCem1dPycf/53OxgE/Y+IGj0YwG61tGsVhU=' 'sha256-6WfLc6Xdu5+fCYlttMUbnJyzxZE31rK0UoAIMZdl1pM=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://przmqczdchshmcivcbbg.supabase.co; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-YrgsdCeUOCem1dPycf/53OxgE/Y+IGj0YwG61tGsVhU=' 'sha256-ZgaHc94DcS0VHIEmESuzv7JpeTjpBdDEWGnvA8tWYiI=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://przmqczdchshmcivcbbg.supabase.co; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Village Market</title>
 <meta name="description" content="O mercado do seu condomínio: peça o que faltou, fale com a gente e acompanhe seu cupom.">
@@ -86,6 +86,13 @@
     </section>
 
     <div id="promo-box"></div>
+
+    <section class="secao" id="vitrine-secao" hidden aria-labelledby="vitrine-titulo">
+      <p class="secao-olho calmo">No seu prédio</p>
+      <h3 id="vitrine-titulo">O que tem na prateleira</h3>
+      <p class="secao-sub">Preços deste condomínio. Promoção aparece destacada.</p>
+      <div class="vitrine" id="vitrine"></div>
+    </section>
 
 
     <section class="secao" id="demandas-secao" hidden aria-labelledby="demandas-titulo">
@@ -616,7 +623,55 @@ function renderInicio() {
   renderChip();
 
   carregarPromocao();
+  carregarVitrine();
   carregarPedidosDaHome();
+}
+
+
+/* ---------- vitrine: o que tem na prateleira deste condomínio ----------
+   Só aparece quando existe produto disponível aqui. Preço e promoção vêm
+   prontos do banco (vitrine_condominio), já com a regra dos dois níveis. */
+function reais(v) {
+  if (v === null || v === undefined) return null;
+  return "R$ " + Number(v).toFixed(2).replace(".", ",");
+}
+
+async function carregarVitrine() {
+  var secao = el("vitrine-secao");
+  if (!sb || !SLUG || !secao) return;
+  var r = await resposta(sb.rpc("vitrine_condominio", { p_slug: SLUG }));
+  var d = (r && r.dados) || {};
+  if (d.ok !== true || !d.produtos || !d.produtos.length) { secao.hidden = true; return; }
+  var caixa = limpar(el("vitrine"));
+  var base = (window.VM_CONFIG || {}).SUPABASE_URL;
+  d.produtos.forEach(function (p) {
+    var card = txt("article", "vit-card");
+    if (p.imagem && base) {
+      var img = document.createElement("img");
+      img.className = "vit-foto";
+      img.loading = "lazy";
+      img.alt = "";
+      img.src = base + "/storage/v1/object/public/produtos/" + p.imagem + "/card.webp";
+      card.appendChild(img);
+    } else {
+      card.appendChild(txt("div", "vit-sem-foto", "sem foto ainda"));
+    }
+    if (p.promocao) card.appendChild(txt("span", "vit-selo",
+      p.promocao.tipo === "percentual" ? ("-" + Math.round(p.promocao.desconto) + "%") : "promoção"));
+    card.appendChild(txt("p", "vit-nome", p.titulo));
+    var preco = txt("div", "vit-preco");
+    if (p.preco === null || p.preco === undefined) {
+      preco.appendChild(txt("span", "cap", "preço na prateleira"));
+    } else {
+      preco.appendChild(txt("b", null, reais(p.preco)));
+      if (p.promocao && p.preco_normal && Number(p.preco_normal) > Number(p.preco)) {
+        preco.appendChild(txt("span", "vit-antes", reais(p.preco_normal)));
+      }
+    }
+    card.appendChild(preco);
+    caixa.appendChild(card);
+  });
+  secao.hidden = false;
 }
 
 /* quem é você */

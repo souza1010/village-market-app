@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!-- CSP (PROMPT 039). O montar.py acrescenta a esta politica o hash de cada
      script embutido e para o build se faltar algum. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-9HOkhKKj24JmNMgHoXNN1MVv2VfGv04KP3SbzD0tH+c=' 'sha256-1nLWLa+af46Fk0ZkL6c3MLIaO3zRjbxmGpo5yLIq++0=' 'sha256-XPGqYwULTTOb0mRe81xQdRsitjnQOHmLGOkmJj4Zt6U=' 'sha256-T3xLmSVglxYgsXvfA2eChNvoly6RLFejVtQbz5puQKI=' 'sha256-ZnmZbzi0hU6Lluec1ttVYxLxfwzodXuncpwM168f6GA=' 'sha256-5vLviNzSx6fGZd2PmEmK69Q5uA9LLxehj7krHAM/j60=' 'sha256-OpvEZR8XAnU/muAsEc2qiENLon4IEv7YagafXWQMICs=' 'sha256-9WDaHte2G/YX4BBJoqQ7TXsUDak6J66YppjoSedkIIY=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://przmqczdchshmcivcbbg.supabase.co; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-9HOkhKKj24JmNMgHoXNN1MVv2VfGv04KP3SbzD0tH+c=' 'sha256-1nLWLa+af46Fk0ZkL6c3MLIaO3zRjbxmGpo5yLIq++0=' 'sha256-XPGqYwULTTOb0mRe81xQdRsitjnQOHmLGOkmJj4Zt6U=' 'sha256-T3xLmSVglxYgsXvfA2eChNvoly6RLFejVtQbz5puQKI=' 'sha256-ZnmZbzi0hU6Lluec1ttVYxLxfwzodXuncpwM168f6GA=' 'sha256-5vLviNzSx6fGZd2PmEmK69Q5uA9LLxehj7krHAM/j60=' 'sha256-OpvEZR8XAnU/muAsEc2qiENLon4IEv7YagafXWQMICs=' 'sha256-WaeQXOYQP4+RRHh7mYHaaATwhmYxHSvOOUi2sX860uA=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://przmqczdchshmcivcbbg.supabase.co; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Village Market — Painel</title>
 <meta name="robots" content="noindex">
@@ -2783,8 +2783,10 @@ async function carregarPromocoes() {
   if (bloco) bloco.hidden = !CONDO;          // sem condomínio escolhido não há o que mostrar
   var box = el("lista-promocoes");
   if (!box || !CONDO || !window.VM_SB) return;
-  limpar(box);
   var r = await window.VM_SB.rpc("admin_promocoes_listar", { p_condominio: CONDO.id });
+  /* limpa só agora: se duas chamadas correrem juntas, a última desenha
+     sozinha em vez de as duas empilharem o mesmo texto */
+  limpar(box);
   var d = r.data || {};
   if (r.error || d.ok !== true) {
     box.appendChild(txt("p", "cap", "Não deu para carregar as promoções agora."));

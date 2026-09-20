@@ -228,6 +228,18 @@ textarea{min-height:120px; resize:vertical; line-height:1.55}
   font-size:14.5px; text-decoration:underline; text-underline-offset:3px; cursor:pointer}
 .miudas{margin-top:var(--e4); font-size:12px; line-height:1.55; color:var(--faint); text-align:center}
 
+/* dobra: alternativa discreta, fechada por padrão (ex.: "já tenho um código") */
+.dobra{margin-top:var(--e5); border-top:1px solid var(--line); padding-top:var(--e4)}
+.dobra>summary{
+  min-height:var(--toque); display:flex; align-items:center; gap:var(--e2);
+  font-size:14px; color:var(--muted); cursor:pointer; list-style:none;
+  text-decoration:underline; text-underline-offset:3px;
+}
+.dobra>summary::-webkit-details-marker{display:none}
+.dobra>summary:focus-visible{outline:2px solid var(--brand); outline-offset:3px; border-radius:var(--r-sm)}
+.dobra[open]>summary{text-decoration:none; font-weight:600; color:var(--ink)}
+.dobra .cap{margin-top:var(--e2)}
+
 /* cartão: a caixa padrão. Sem borda, só elevação mínima. */
 .card{
   background:var(--surface); border-radius:var(--r-lg);

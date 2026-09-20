@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!-- CSP (PROMPT 039). O montar.py acrescenta a esta politica o hash de cada
      script embutido e para o build se faltar algum. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-YrgsdCeUOCem1dPycf/53OxgE/Y+IGj0YwG61tGsVhU=' 'sha256-ZgaHc94DcS0VHIEmESuzv7JpeTjpBdDEWGnvA8tWYiI=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://przmqczdchshmcivcbbg.supabase.co; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-5C75MvB3ZmQHGPtFQI9BB9sBrMKfthIzBuDpJFOuXQ8=' 'sha256-olv7YklSoMKulgCpB+eb+9jZP0tR4MzWhuoAdATJ+NM=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://przmqczdchshmcivcbbg.supabase.co; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Village Market</title>
 <meta name="description" content="O mercado do seu condomínio: peça o que faltou, fale com a gente e acompanhe seu cupom.">
@@ -66,6 +66,19 @@
     <p class="msg" id="eu-msg" role="status" aria-live="polite"></p>
     <button type="button" class="btn btn-primary btn-cheio" id="eu-salvar">Salvar e continuar</button>
     <p class="miudas">Fica guardado só neste celular. Não pedimos senha, e-mail nem documento.</p>
+
+    <details class="dobra" id="eu-codigo-dobra">
+      <summary>Já tenho um código (troquei de celular ou é meu segundo aparelho)</summary>
+      <p class="cap">Use o código que apareceu no seu outro aparelho ou o que a Village
+      te passou. Assim este celular entra no mesmo apartamento, com seus cupons e pedidos.</p>
+      <div class="field">
+        <label for="eu-codigo">Código</label>
+        <input id="eu-codigo" type="text" autocomplete="off" spellcheck="false" maxlength="20"
+               placeholder="XXXX-XXXX" autocapitalize="characters">
+      </div>
+      <button type="button" class="btn btn-ghost btn-cheio" id="eu-codigo-enviar">Usar este código</button>
+      <p class="msg" id="eu-codigo-msg" role="status" aria-live="polite"></p>
+    </details>
   </section>
 
   <!-- ====== INÍCIO ====== -->
@@ -318,6 +331,41 @@ async function conferir(sb, slug) {
   }
 }
 
+/* Segundo aparelho: este celular, já vinculado, pede um código curto ao
+   banco. Devolve { ok, codigo, expira_em } ou { ok: false, erro }. O código
+   aparece uma vez e não fica guardado em lugar nenhum. */
+async function gerarPareamento(sb, slug) {
+  var s = ler(slug);
+  if (!sb || !s) return { ok: false, erro: "sem_sessao" };
+  try {
+    var r = await sb.rpc("morador_gerar_pareamento", { p_slug: slug, p_token: s.t });
+    if (r.error) return { ok: false, erro: "sem_conexao" };
+    return r.data || { ok: false, erro: "falhou" };
+  } catch (e) {
+    return { ok: false, erro: "sem_conexao" };
+  }
+}
+
+/* Entra num vínculo que já existe, com o código de pareamento (do outro
+   aparelho) ou o de recuperação (que o operador gera no painel). O banco
+   confere e devolve um segredo NOVO só para este aparelho. */
+async function parear(sb, slug, codigo) {
+  if (!sb) return { ok: false, erro: "sem_conexao" };
+  try {
+    // a origem do aparelho quem decide é o banco, pelo tipo do código
+    // (pareamento ou recuperação) — aqui não se manda nada além disso
+    var r = await sb.rpc("morador_parear", { p_slug: slug, p_codigo: codigo, p_dados: {} });
+    if (r.error) return { ok: false, erro: "sem_conexao" };
+    var d = r.data || {};
+    if (d.ok !== true || !gravar(slug, d.token, d.grupo)) {
+      return { ok: false, erro: d.erro || "falhou" };
+    }
+    return { ok: true, grupo: d.grupo || {} };
+  } catch (e) {
+    return { ok: false, erro: "sem_conexao" };
+  }
+}
+
 /* Desliga este celular: o banco revoga o aparelho e a cópia local some. */
 async function sair(sb, slug) {
   var s = ler(slug);
@@ -338,6 +386,8 @@ window.VMIdentidade = {
   esquecer: esquecer,
   igual: igual,
   vincular: vincular,
+  gerarPareamento: gerarPareamento,
+  parear: parear,
   conferir: conferir,
   sair: sair,
   recusada: recusada
@@ -524,6 +574,44 @@ el("eu-salvar").addEventListener("click", async function () {
   }
   msg("eu-msg", "");
   try { localStorage.removeItem("vm_eu_" + SLUG); } catch (e) {}
+  PENDENTE = null;
+  irPara(destino);
+});
+
+/* Trocou de celular, ou é o segundo aparelho: entra pelo código em vez de
+   declarar bloco e apartamento de novo. Serve tanto para o código gerado no
+   outro aparelho quanto para o de recuperação que o operador passa. */
+el("eu-codigo-enviar").addEventListener("click", async function () {
+  var campo = el("eu-codigo");
+  var digitado = campo.value;
+  campo.value = "";
+  var limpo = digitado.replace(/[^A-Za-z0-9]/g, "");
+  if (limpo.length !== 8 && limpo.length !== 10) {
+    msg("eu-codigo-msg", "Confira o código: são 8 ou 10 letras e números.", "erro");
+    campo.focus();
+    return;
+  }
+  this.disabled = true;
+  msg("eu-codigo-msg", "Conferindo…");
+  var r = await ID.parear(sb, SLUG, digitado);
+  digitado = null;
+  this.disabled = false;
+  if (!r.ok) {
+    msg("eu-codigo-msg", r.erro === "tente_mais_tarde"
+      ? "Muitas tentativas agora. Tente de novo mais tarde."
+      : r.erro === "limite_aparelhos"
+        ? "Já são aparelhos demais neste apartamento. Fale com a gente na aba Ajuda."
+        : r.erro === "sem_conexao"
+          ? "Sem conexão. Tente de novo em instantes."
+          : "Código não confere ou já foi usado.", "erro");
+    return;
+  }
+  msg("eu-codigo-msg", "");
+  el("eu-codigo-dobra").open = false;
+  carregarEu();
+  renderChip();
+  try { localStorage.removeItem("vm_eu_" + SLUG); } catch (e) {}
+  var destino = PENDENTE || "inicio";
   PENDENTE = null;
   irPara(destino);
 });
@@ -1004,6 +1092,7 @@ async function carregarMeus() {
   el("meus-sub").textContent = "Apartamento " + EU.ap + (EU.bloco ? ", bloco " + EU.bloco : "") + ".";
 
   box.appendChild(cardVerificacao());
+  box.appendChild(cardAparelhos());
 
   /* cupons */
   var c1 = txt("div", "card");
@@ -1078,6 +1167,80 @@ async function carregarMeus() {
     });
   }
   box.appendChild(c3);
+}
+
+/* ---------- outro aparelho (R13a: pareamento) ----------
+   O código aparece UMA vez, aqui na tela: não é guardado no celular nem
+   volta a ser mostrado. Quem confere é o banco. */
+function cardAparelhos() {
+  var c = txt("div", "card");
+  c.appendChild(txt("h3", null, "Usar em outro aparelho"));
+  c.appendChild(txt("p", "cap", "Tem tablet, ou quer o app também no celular de casa? "
+    + "Gere um código aqui e digite no outro aparelho, na tela do apartamento. "
+    + "Os dois passam a ver os mesmos cupons e pedidos."));
+  var b = txt("button", "btn btn-ghost btn-cheio", "Gerar código para outro aparelho");
+  b.type = "button";
+  var caixa = txt("div", null, "");
+  var m = txt("p", "msg");
+  m.setAttribute("role", "status");
+  m.setAttribute("aria-live", "polite");
+  b.addEventListener("click", async function () {
+    b.disabled = true;
+    limpar(caixa);
+    m.className = "msg";
+    m.textContent = "Gerando…";
+    var d = await ID.gerarPareamento(sb, SLUG);
+    b.disabled = false;
+    if (!d || d.ok !== true) {
+      m.className = "msg erro";
+      m.textContent = d && d.erro === "limite_aparelhos"
+        ? "Já são aparelhos demais neste apartamento."
+        : d && d.erro === "tente_mais_tarde"
+          ? "Muitos códigos gerados agora. Tente de novo mais tarde."
+          : d && d.erro === "nao_autorizado"
+            ? "Esta sessão não vale mais neste aparelho."
+            : "Não deu para gerar agora. Tente de novo em instantes.";
+      if (d && ID.recusada(d)) sessaoPerdida("meus");
+      return;
+    }
+    m.textContent = "";
+    var linha = txt("div", "meu");
+    var topo = txt("div", "meu-topo");
+    topo.appendChild(txt("span", "meu-cod", d.codigo));
+    topo.appendChild(txt("span", "meu-data", "só uma vez"));
+    linha.appendChild(topo);
+    linha.appendChild(txt("div", "meu-txt", "Digite este código no outro aparelho"
+      + (d.expira_em ? ", até " + hora(d.expira_em) : "") + ". Depois ele não vale mais."));
+    caixa.appendChild(linha);
+  });
+  c.appendChild(b);
+  c.appendChild(caixa);
+  c.appendChild(m);
+
+  /* Sair deste aparelho: o banco revoga este aparelho (só ele) e a cópia
+     local some. Os outros aparelhos do apartamento continuam. */
+  var bs = txt("button", "btn btn-ghost btn-cheio", "Sair neste aparelho");
+  bs.type = "button";
+  bs.id = "meus-sair";
+  bs.style.marginTop = "10px";
+  bs.addEventListener("click", async function () {
+    if (!window.confirm("Sair neste aparelho? Seus cupons e pedidos continuam com a Village, "
+        + "mas este celular deixa de ver a aba Meus. Outros aparelhos seus não são afetados.")) return;
+    bs.disabled = true;
+    await ID.sair(sb, SLUG);
+    carregarEu();
+    renderChip();
+    abrirIdentificacao("Você saiu neste aparelho.");
+  });
+  c.appendChild(bs);
+  c.appendChild(txt("p", "cap", "Use em celular emprestado ou quando for passar o aparelho adiante."));
+  return c;
+}
+
+function hora(iso) {
+  try {
+    return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  } catch (e) { return ""; }
 }
 
 /* ---------- apartamento verificado (R13b) ----------

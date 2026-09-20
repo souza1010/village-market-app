@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!-- CSP (PROMPT 039). O montar.py acrescenta a esta politica o hash de cada
      script embutido e para o build se faltar algum. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-9HOkhKKj24JmNMgHoXNN1MVv2VfGv04KP3SbzD0tH+c=' 'sha256-1nLWLa+af46Fk0ZkL6c3MLIaO3zRjbxmGpo5yLIq++0=' 'sha256-XPGqYwULTTOb0mRe81xQdRsitjnQOHmLGOkmJj4Zt6U=' 'sha256-T3xLmSVglxYgsXvfA2eChNvoly6RLFejVtQbz5puQKI=' 'sha256-ZnmZbzi0hU6Lluec1ttVYxLxfwzodXuncpwM168f6GA=' 'sha256-UHvrSet4C5vHAtl4/4PP7pz+4P6EU2XZrE49dBpe5Wg=' 'sha256-OpvEZR8XAnU/muAsEc2qiENLon4IEv7YagafXWQMICs=' 'sha256-zJRfiJVX19URy0yiR2CV2XLGRelnwnrQxwk39FMZRDc=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://przmqczdchshmcivcbbg.supabase.co; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-9HOkhKKj24JmNMgHoXNN1MVv2VfGv04KP3SbzD0tH+c=' 'sha256-1nLWLa+af46Fk0ZkL6c3MLIaO3zRjbxmGpo5yLIq++0=' 'sha256-XPGqYwULTTOb0mRe81xQdRsitjnQOHmLGOkmJj4Zt6U=' 'sha256-T3xLmSVglxYgsXvfA2eChNvoly6RLFejVtQbz5puQKI=' 'sha256-ZnmZbzi0hU6Lluec1ttVYxLxfwzodXuncpwM168f6GA=' 'sha256-5vLviNzSx6fGZd2PmEmK69Q5uA9LLxehj7krHAM/j60=' 'sha256-OpvEZR8XAnU/muAsEc2qiENLon4IEv7YagafXWQMICs=' 'sha256-9WDaHte2G/YX4BBJoqQ7TXsUDak6J66YppjoSedkIIY=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://przmqczdchshmcivcbbg.supabase.co; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Village Market — Painel</title>
 <meta name="robots" content="noindex">
@@ -311,6 +311,12 @@
     <div class="acoes" style="margin-top:12px">
       <button type="button" class="btn btn-ghost btn-sm" id="bloco-produtos-novo-abrir" hidden>Novo produto</button>
       <span class="cap" id="produtos-total"></span>
+    </div>
+
+    <div id="bloco-promocoes" style="margin-top:18px">
+      <h4>Promoções no ar neste condomínio</h4>
+      <p class="sub" style="margin-top:2px">O que o morador está vendo com desconto agora.</p>
+      <div id="lista-promocoes"></div>
     </div>
 
     <div id="bloco-produto-novo" hidden style="margin-top:14px">
@@ -2122,7 +2128,8 @@ async function recuperar(m, botao) {
 
   var caixa = limpar(el("recuperacao-caixa"));
   caixa.style.marginTop = "14px";
-  caixa.appendChild(txt("p", "sub", "Leia este código para a pessoa agora. Ele aparece uma única vez, vale 24 horas e só pode ser usado uma vez."));
+  caixa.appendChild(txt("p", "sub", "Leia este código para a pessoa agora. Ele aparece uma única vez, vale 24 horas e só pode ser usado uma vez. "
+    + "No celular novo ela abre o app, toca em “Já tenho um código” na tela do apartamento e digita."));
   var cod = txt("p", "codigo-apto", d.codigo);
   cod.style.fontSize = "22px";
   caixa.appendChild(cod);
@@ -2323,6 +2330,8 @@ function urlImagem(id, tamanho) {
 /* ---------- lista ---------- */
 async function carregar() {
   if (!window.VM_SB) return;
+  var bp = el("bloco-promocoes");
+  if (bp) bp.hidden = !CONDO;
   var r = await window.VM_SB.rpc("admin_catalogo_listar", { p_busca: BUSCA || null, p_limite: 100, p_pagina: 1 });
   var d = r.data || {};
   if (r.error || d.ok !== true) { desenharVazio(erroDe(d)); return; }
@@ -2455,6 +2464,26 @@ function formulario(p, novo) {
   dupla2.appendChild(fp); dupla2.appendChild(fi);
   f.appendChild(dupla2);
 
+  /* curadoria: o que entra na pesquisa e em que ordem aparece */
+  var dupla3 = txt("div", "dupla");
+  var fq = txt("div", "field"); fq.style.margin = "0";
+  var lq = txt("label", null, "Entra na pesquisa?"); lq.htmlFor = pref + "participa";
+  var iq = document.createElement("select"); iq.id = pref + "participa";
+  opcoes(iq, [{ id: "nao", nome: "Não" }, { id: "sim", nome: "Sim" }],
+         p.participa_pesquisa ? "sim" : "nao", null);
+  fq.appendChild(lq); fq.appendChild(iq);
+  var fo = txt("div", "field"); fo.style.margin = "0";
+  var lo = txt("label", null, "Ordem na lista"); lo.htmlFor = pref + "ordem";
+  var io = document.createElement("input");
+  io.id = pref + "ordem"; io.type = "number"; io.step = "1"; io.min = "0"; io.inputMode = "numeric";
+  io.value = String(p.ordem === undefined || p.ordem === null ? 0 : p.ordem);
+  fo.appendChild(lo); fo.appendChild(io);
+  dupla3.appendChild(fq); dupla3.appendChild(fo);
+  f.appendChild(dupla3);
+  f.appendChild(txt("p", "cap", "Menor número aparece primeiro; empate resolve por ordem alfabética. "
+    + "A ordem já vale na vitrine do app. “Entra na pesquisa” fica guardado para quando a "
+    + "pesquisa passar a ler o catálogo — hoje ela ainda usa a lista fixa de 31 itens."));
+
   var acoes = txt("div", "acoes");
   acoes.style.marginTop = "12px";
   var bs = txt("button", "btn btn-primary btn-sm", novo ? "Cadastrar produto" : "Salvar");
@@ -2480,7 +2509,9 @@ function valoresDo(pref) {
     conteudo: Number(v("conteudo") || 0), unidade: v("unidade"),
     ean: v("ean") || null,
     preco_referencia: v("preco") === "" ? null : Number(v("preco")),
-    item_pesquisa: v("item") || null
+    item_pesquisa: v("item") || null,
+    participa_pesquisa: v("participa") === "sim",
+    ordem: v("ordem") === "" ? 0 : Number(v("ordem"))
   };
   return dados;
 }
@@ -2745,6 +2776,48 @@ async function salvarCondo(p, botao) {
   carregarCondo();
 }
 
+/* Todas as promoções ativas do condomínio, juntas — para não precisar
+   abrir produto por produto para saber o que está no ar. */
+async function carregarPromocoes() {
+  var bloco = el("bloco-promocoes");
+  if (bloco) bloco.hidden = !CONDO;          // sem condomínio escolhido não há o que mostrar
+  var box = el("lista-promocoes");
+  if (!box || !CONDO || !window.VM_SB) return;
+  limpar(box);
+  var r = await window.VM_SB.rpc("admin_promocoes_listar", { p_condominio: CONDO.id });
+  var d = r.data || {};
+  if (r.error || d.ok !== true) {
+    box.appendChild(txt("p", "cap", "Não deu para carregar as promoções agora."));
+    return;
+  }
+  var lista = d.promocoes || [];
+  if (!lista.length) {
+    box.appendChild(txt("p", "cap", "Nenhuma promoção no ar. Abra um produto para criar."));
+    return;
+  }
+  lista.forEach(function (pr) {
+    var linha = txt("div", "acoes");
+    linha.style.cssText = "justify-content:space-between; align-items:center; gap:10px; " +
+      "padding:10px 0; border-bottom:1px solid var(--line)";
+    var esq = txt("div");
+    esq.appendChild(txt("div", null, pr.titulo));
+    // o banco devolve o preço como objeto: { preco, preco_normal, … }
+    var pv = pr.preco || {};
+    var detalhe = (pr.tipo === "percentual" ? Number(pr.percentual) + "% de desconto"
+                                            : "preço fixo de " + brl(pr.preco_fixo))
+      + " · sai por " + brl(pv.preco)
+      + (pv.preco_normal && pv.preco_normal !== pv.preco ? " (normal " + brl(pv.preco_normal) + ")" : "")
+      + (pr.termina_em ? " · até " + new Date(pr.termina_em).toLocaleDateString("pt-BR") : " · sem data de fim");
+    esq.appendChild(txt("div", "cap", detalhe));
+    linha.appendChild(esq);
+    var b = txt("button", "btn btn-ghost btn-sm", "Encerrar");
+    b.type = "button";
+    b.addEventListener("click", function () { encerrar(pr.id, b); });
+    linha.appendChild(b);
+    box.appendChild(linha);
+  });
+}
+
 function blocoPromocao(p) {
   var box = txt("div");
   box.style.marginTop = "16px";
@@ -2820,6 +2893,7 @@ async function carregarCondo() {
   var r = await window.VM_SB.rpc("admin_condominio_catalogo", {
     p_condominio: CONDO.id, p_busca: BUSCA || null, p_limite: 100, p_pagina: 1
   });
+  carregarPromocoes();
   var d = r.data || {};
   if (r.error || d.ok !== true) { carregar(); return; }
   LISTA = d.produtos || [];

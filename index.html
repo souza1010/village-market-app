@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!-- CSP (PROMPT 039). O montar.py acrescenta a esta politica o hash de cada
      script embutido e para o build se faltar algum. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-YrgsdCeUOCem1dPycf/53OxgE/Y+IGj0YwG61tGsVhU=' 'sha256-zKDXI+AYgoi7XdA5A4E1tbe64cIAIh+LwNIKPSRGEQA=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-5C75MvB3ZmQHGPtFQI9BB9sBrMKfthIzBuDpJFOuXQ8=' 'sha256-zKDXI+AYgoi7XdA5A4E1tbe64cIAIh+LwNIKPSRGEQA=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Village Market — Cesta do Prédio</title>
 <meta name="description" content="Dois minutos para dizer o que não pode faltar no mercado do seu condomínio.">
@@ -360,6 +360,41 @@ async function conferir(sb, slug) {
   }
 }
 
+/* Segundo aparelho: este celular, já vinculado, pede um código curto ao
+   banco. Devolve { ok, codigo, expira_em } ou { ok: false, erro }. O código
+   aparece uma vez e não fica guardado em lugar nenhum. */
+async function gerarPareamento(sb, slug) {
+  var s = ler(slug);
+  if (!sb || !s) return { ok: false, erro: "sem_sessao" };
+  try {
+    var r = await sb.rpc("morador_gerar_pareamento", { p_slug: slug, p_token: s.t });
+    if (r.error) return { ok: false, erro: "sem_conexao" };
+    return r.data || { ok: false, erro: "falhou" };
+  } catch (e) {
+    return { ok: false, erro: "sem_conexao" };
+  }
+}
+
+/* Entra num vínculo que já existe, com o código de pareamento (do outro
+   aparelho) ou o de recuperação (que o operador gera no painel). O banco
+   confere e devolve um segredo NOVO só para este aparelho. */
+async function parear(sb, slug, codigo) {
+  if (!sb) return { ok: false, erro: "sem_conexao" };
+  try {
+    // a origem do aparelho quem decide é o banco, pelo tipo do código
+    // (pareamento ou recuperação) — aqui não se manda nada além disso
+    var r = await sb.rpc("morador_parear", { p_slug: slug, p_codigo: codigo, p_dados: {} });
+    if (r.error) return { ok: false, erro: "sem_conexao" };
+    var d = r.data || {};
+    if (d.ok !== true || !gravar(slug, d.token, d.grupo)) {
+      return { ok: false, erro: d.erro || "falhou" };
+    }
+    return { ok: true, grupo: d.grupo || {} };
+  } catch (e) {
+    return { ok: false, erro: "sem_conexao" };
+  }
+}
+
 /* Desliga este celular: o banco revoga o aparelho e a cópia local some. */
 async function sair(sb, slug) {
   var s = ler(slug);
@@ -380,6 +415,8 @@ window.VMIdentidade = {
   esquecer: esquecer,
   igual: igual,
   vincular: vincular,
+  gerarPareamento: gerarPareamento,
+  parear: parear,
   conferir: conferir,
   sair: sair,
   recusada: recusada

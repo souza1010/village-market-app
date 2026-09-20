@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!-- CSP (PROMPT 039). O montar.py acrescenta a esta politica o hash de cada
      script embutido e para o build se faltar algum. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-5C75MvB3ZmQHGPtFQI9BB9sBrMKfthIzBuDpJFOuXQ8=' 'sha256-zKDXI+AYgoi7XdA5A4E1tbe64cIAIh+LwNIKPSRGEQA=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-5C75MvB3ZmQHGPtFQI9BB9sBrMKfthIzBuDpJFOuXQ8=' 'sha256-+hXll9OJcio1277sRXqKU7OaYynwn0lr+sw/QsTezb4=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Village Market — Cesta do Prédio</title>
 <meta name="description" content="Dois minutos para dizer o que não pode faltar no mercado do seu condomínio.">
@@ -593,6 +593,41 @@ async function carregarCondominio() {
   }
 }
 
+/* ---------- catálogo da pesquisa ----------
+   As listas acima são a RESERVA. Quando o banco responde (03v), elas
+   são trocadas pelo que está cadastrado no painel — mesmos campos,
+   mesmo desenho de tela. Se não responder, responder torto ou vier
+   vazio, fica valendo a reserva: a pesquisa nunca deixa de abrir por
+   causa disto. */
+async function carregarCatalogo() {
+  if (!sb) return;
+  try {
+    var r = await sb.rpc("pesquisa_catalogo");
+    if (r.error) return;
+    var d = r.data;
+    if (!d || d.ok !== true || !d.categorias || !d.itens) return;
+    if (!d.categorias.length || !d.itens.length) return;
+
+    var porCat = {};
+    d.categorias.forEach(function (c) { if (c && c.id && c.nome) porCat[c.id] = true; });
+    var itens = d.itens.filter(function (p) {
+      return p && p.id && p.n && typeof p.p === "number" && p.p >= 0 && porCat[p.c];
+    });
+    if (!itens.length) return;                       // nada aproveitável: mantém a reserva
+
+    CATS = d.categorias.filter(function (c) {
+      return itens.some(function (p) { return p.c === c.id; });
+    });
+    PRODUTOS = itens;
+    GRUPOS = (d.grupos && typeof d.grupos === "object") ? d.grupos : {};
+
+    // se o morador já estiver na tela da cesta, redesenha com o que chegou
+    if (!el("s-cesta").hidden) { montarCatalogo(); atualizarOrcamento(); }
+  } catch (e) {
+    /* reserva */
+  }
+}
+
 async function carregarPromocao() {
   if (!sb || !CONDO) return;
   try {
@@ -1159,6 +1194,7 @@ if ("serviceWorker" in navigator) {
 
 /* ---------- início ---------- */
 carregarCondominio();
+carregarCatalogo();
 mostrar();
 })();
 

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!-- CSP (PROMPT 039). O montar.py acrescenta a esta politica o hash de cada
      script embutido e para o build se faltar algum. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-9HOkhKKj24JmNMgHoXNN1MVv2VfGv04KP3SbzD0tH+c=' 'sha256-1nLWLa+af46Fk0ZkL6c3MLIaO3zRjbxmGpo5yLIq++0=' 'sha256-XPGqYwULTTOb0mRe81xQdRsitjnQOHmLGOkmJj4Zt6U=' 'sha256-T3xLmSVglxYgsXvfA2eChNvoly6RLFejVtQbz5puQKI=' 'sha256-ZnmZbzi0hU6Lluec1ttVYxLxfwzodXuncpwM168f6GA=' 'sha256-5vLviNzSx6fGZd2PmEmK69Q5uA9LLxehj7krHAM/j60=' 'sha256-OpvEZR8XAnU/muAsEc2qiENLon4IEv7YagafXWQMICs=' 'sha256-WaeQXOYQP4+RRHh7mYHaaATwhmYxHSvOOUi2sX860uA=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://przmqczdchshmcivcbbg.supabase.co; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-9HOkhKKj24JmNMgHoXNN1MVv2VfGv04KP3SbzD0tH+c=' 'sha256-1nLWLa+af46Fk0ZkL6c3MLIaO3zRjbxmGpo5yLIq++0=' 'sha256-XPGqYwULTTOb0mRe81xQdRsitjnQOHmLGOkmJj4Zt6U=' 'sha256-T3xLmSVglxYgsXvfA2eChNvoly6RLFejVtQbz5puQKI=' 'sha256-ZnmZbzi0hU6Lluec1ttVYxLxfwzodXuncpwM168f6GA=' 'sha256-5vLviNzSx6fGZd2PmEmK69Q5uA9LLxehj7krHAM/j60=' 'sha256-OpvEZR8XAnU/muAsEc2qiENLon4IEv7YagafXWQMICs=' 'sha256-J2Cuflya2aPlSmCiQo9OCKm4Lls5vdrGpbuGY3A75c0=' 'sha256-WaeQXOYQP4+RRHh7mYHaaATwhmYxHSvOOUi2sX860uA=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://przmqczdchshmcivcbbg.supabase.co; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Village Market — Painel</title>
 <meta name="robots" content="noindex">
@@ -291,6 +291,38 @@
     </div>
     <button type="button" class="btn btn-primary" id="btn-promo" style="margin-top:16px">Publicar promoção</button>
     <p class="lead" id="promo-msg" style="font-size:14px"></p>
+  </div>
+
+  <div class="block" id="bloco-pesquisa-itens" hidden>
+    <h3>Itens da pesquisa</h3>
+    <p class="sub">Os itens genéricos da cesta de R$ 100 que o morador vê na pesquisa. Não é o catálogo de
+    SKU: aqui não tem marca, código de barras nem foto — isso fica em Produtos.</p>
+
+    <div class="dupla" style="margin-top:14px">
+      <div class="field" style="margin:0">
+        <label for="f-pesq-busca">Procurar por nome ou categoria</label>
+        <input id="f-pesq-busca" type="text" placeholder="chocolate, bebida…" autocomplete="off">
+      </div>
+      <div class="field" style="margin:0; align-self:end">
+        <button type="button" class="btn btn-primary btn-sm" id="btn-pesq-buscar">Procurar</button>
+      </div>
+    </div>
+
+    <div class="acoes" style="margin-top:12px">
+      <span class="cap" id="pesq-total"></span>
+    </div>
+
+    <p class="lead" id="pesq-msg" style="font-size:14px" role="status" aria-live="polite"></p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th scope="col">Item</th><th scope="col">Preço</th>
+          <th scope="col">Entra</th><th scope="col"></th>
+        </tr></thead>
+        <tbody id="tbody-pesq-itens"></tbody>
+      </table>
+    </div>
   </div>
 
   <div class="block" id="bloco-produtos">
@@ -2236,6 +2268,246 @@ function ajustar() {
 }
 window.addEventListener("vm:condos", ajustar);
 ajustar();
+})();
+
+</script>
+<script>
+/* ============================================================
+   Village 360 — itens da pesquisa no painel (03v/03w)
+
+   Os 31 itens genéricos da cesta de R$ 100 ("Refrigerante lata",
+   "Chocolate"). NÃO é o catálogo de SKU: aqui não tem marca, código de
+   barras nem foto — isso fica em Produtos, de propósito.
+
+   Feito para o celular: uma linha por item, e a edição abre logo
+   abaixo, com um campo por vez.
+
+   Item não se apaga: tirar da pesquisa é "Entra: Não". O histórico das
+   respostas guarda a cesta como cópia e não muda.
+   ============================================================ */
+(function () {
+"use strict";
+
+var ITENS = [];
+var CATS = [];
+var ABERTO = null;
+var BUSCA = "";
+
+var ERROS = {
+  sem_login: "Sua sessão expirou. Entre de novo.",
+  sem_permissao: "Só o dono edita os itens da pesquisa.",
+  nome_invalido: "O nome tem que ter entre 2 e 60 letras.",
+  categoria_invalida: "Escolha uma categoria da lista.",
+  preco_invalido: "Confira o preço (entre 0 e 999).",
+  ordem_invalida: "A ordem tem que ser um número de 0 a 9999.",
+  ultimo_item: "Este é o último item da pesquisa. Tirar ele deixaria a cesta vazia.",
+  nao_encontrado: "Item não encontrado.",
+  campo_desconhecido: "Campo não reconhecido.",
+  dados_invalidos: "Confira os campos."
+};
+
+function el(id) { return document.getElementById(id); }
+function limpar(n) { while (n.firstChild) n.removeChild(n.firstChild); return n; }
+function txt(tag, cls, t) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (t !== undefined && t !== null) e.textContent = t;
+  return e;
+}
+function brl(v) {
+  if (v === null || v === undefined || v === "") return "—";
+  return "R$ " + Number(v).toFixed(2).replace(".", ",");
+}
+function msg(t, tipo) {
+  var m = el("pesq-msg");
+  if (!m) return;
+  m.textContent = t || "";
+  m.style.color = tipo === "erro" ? "var(--erro, #b3261e)" : "";
+}
+function erroDe(d) { return ERROS[(d || {}).erro] || "Não deu certo agora."; }
+
+async function carregar() {
+  if (!window.VM_SB) return;
+  var bloco = el("bloco-pesquisa-itens");
+  if (bloco) bloco.hidden = window.VM_DONO !== true;      // catálogo global: só o dono
+  if (window.VM_DONO !== true) return;
+
+  var r = await window.VM_SB.rpc("admin_pesquisa_itens_listar");
+  var d = r.data || {};
+  if (r.error || d.ok !== true) { desenharVazio(erroDe(d)); return; }
+  ITENS = d.itens || [];
+  CATS = d.categorias || [];
+  desenhar(d.na_pesquisa);
+}
+
+function desenharVazio(t) {
+  var corpo = limpar(el("tbody-pesq-itens"));
+  var tr = txt("tr"), td = txt("td", null, t);
+  td.colSpan = 4; tr.appendChild(td); corpo.appendChild(tr);
+}
+
+function desenhar(quantos) {
+  var corpo = limpar(el("tbody-pesq-itens"));
+  var resumo = el("pesq-total");
+  if (resumo) {
+    resumo.textContent = (quantos || 0) + (quantos === 1 ? " item na pesquisa" : " itens na pesquisa")
+      + (ITENS.length !== quantos ? " (de " + ITENS.length + " cadastrados)" : "");
+  }
+  var lista = ITENS.filter(function (i) {
+    if (!BUSCA) return true;
+    var alvo = (i.nome + " " + i.categoria_nome + " " + i.id).toLowerCase();
+    return alvo.indexOf(BUSCA.toLowerCase()) > -1;
+  });
+  if (!lista.length) { desenharVazio(BUSCA ? "Nada encontrado." : "Nenhum item."); return; }
+
+  var catAtual = null;
+  lista.forEach(function (i) {
+    if (i.categoria_nome !== catAtual) {
+      catAtual = i.categoria_nome;
+      var trc = txt("tr");
+      var tdc = txt("td");
+      tdc.colSpan = 4;
+      tdc.appendChild(txt("b", null, catAtual));
+      trc.appendChild(tdc);
+      corpo.appendChild(trc);
+    }
+    var tr = txt("tr");
+    var tdn = txt("td");
+    tdn.appendChild(txt("div", null, i.nome));
+    tdn.appendChild(txt("div", "cap", "ordem " + i.ordem));
+    tr.appendChild(tdn);
+    tr.appendChild(txt("td", null, brl(i.preco)));
+    tr.appendChild(txt("td", null, i.na_pesquisa ? "Sim" : "Não"));
+
+    var tda = txt("td");
+    var b = txt("button", "btn btn-ghost btn-sm", ABERTO === i.id ? "Fechar" : "Editar");
+    b.type = "button";
+    b.addEventListener("click", function () {
+      ABERTO = ABERTO === i.id ? null : i.id;
+      msg("");
+      desenhar(quantos);
+    });
+    tda.appendChild(b);
+    tr.appendChild(tda);
+    corpo.appendChild(tr);
+
+    if (ABERTO === i.id) {
+      var trD = txt("tr"), tdD = txt("td");
+      tdD.colSpan = 4;
+      tdD.appendChild(formulario(i));
+      trD.appendChild(tdD);
+      corpo.appendChild(trD);
+    }
+  });
+}
+
+function campo(pai, rotulo, id, valor, tipo) {
+  var f = txt("div", "field");
+  f.style.margin = "0 0 10px";
+  var l = txt("label", null, rotulo);
+  l.htmlFor = id;
+  var i = document.createElement(tipo === "select" ? "select" : "input");
+  i.id = id;
+  if (tipo !== "select") {
+    i.type = tipo || "text";
+    i.autocomplete = "off";
+    i.value = (valor === null || valor === undefined) ? "" : String(valor);
+  }
+  f.appendChild(l); f.appendChild(i);
+  pai.appendChild(f);
+  return i;
+}
+
+function formulario(i) {
+  var box = txt("div", "block");
+  box.style.margin = "0";
+  box.appendChild(txt("h4", null, i.nome));
+  box.appendChild(txt("p", "cap", "Item da pesquisa · código interno " + i.id
+    + (i.grupo_marca ? " · pergunta marca (" + i.grupo_marca + ")" : "")));
+
+  campo(box, "Nome na cesta", "pi-nome", i.nome, "text");
+
+  var fc = txt("div", "field");
+  fc.style.margin = "0 0 10px";
+  var lc = txt("label", null, "Categoria");
+  lc.htmlFor = "pi-categoria";
+  var sc = document.createElement("select");
+  sc.id = "pi-categoria";
+  CATS.forEach(function (c) { sc.appendChild(new Option(c.nome, c.id)); });
+  sc.value = i.categoria;
+  fc.appendChild(lc); fc.appendChild(sc);
+  box.appendChild(fc);
+
+  var dupla = txt("div", "dupla");
+  var fp = txt("div", "field"); fp.style.margin = "0";
+  var lp = txt("label", null, "Preço na pesquisa"); lp.htmlFor = "pi-preco";
+  var ip = document.createElement("input");
+  ip.id = "pi-preco"; ip.type = "number"; ip.step = "0.01"; ip.min = "0"; ip.inputMode = "decimal";
+  ip.value = String(i.preco);
+  fp.appendChild(lp); fp.appendChild(ip);
+  var fo = txt("div", "field"); fo.style.margin = "0";
+  var lo = txt("label", null, "Ordem"); lo.htmlFor = "pi-ordem";
+  var io = document.createElement("input");
+  io.id = "pi-ordem"; io.type = "number"; io.step = "1"; io.min = "0"; io.inputMode = "numeric";
+  io.value = String(i.ordem);
+  fo.appendChild(lo); fo.appendChild(io);
+  dupla.appendChild(fp); dupla.appendChild(fo);
+  box.appendChild(dupla);
+
+  var fe = txt("div", "field");
+  var le = txt("label", null, "Entra na pesquisa?");
+  le.htmlFor = "pi-entra";
+  var se = document.createElement("select");
+  se.id = "pi-entra";
+  se.appendChild(new Option("Sim", "sim"));
+  se.appendChild(new Option("Não", "nao"));
+  se.value = i.na_pesquisa ? "sim" : "nao";
+  fe.appendChild(le); fe.appendChild(se);
+  box.appendChild(fe);
+
+  box.appendChild(txt("p", "cap", "Menor ordem aparece primeiro. Tirar da pesquisa não apaga nada: "
+    + "as respostas já enviadas guardam a cópia do nome e do preço da época."));
+
+  var acoes = txt("div", "acoes");
+  acoes.style.marginTop = "12px";
+  var bs = txt("button", "btn btn-primary btn-sm", "Salvar");
+  bs.type = "button";
+  bs.addEventListener("click", function () { salvar(i, bs); });
+  acoes.appendChild(bs);
+  box.appendChild(acoes);
+  return box;
+}
+
+async function salvar(i, botao) {
+  var dados = {
+    nome: el("pi-nome").value.trim(),
+    categoria: el("pi-categoria").value,
+    preco: Number(el("pi-preco").value || 0),
+    ordem: Number(el("pi-ordem").value || 0),
+    na_pesquisa: el("pi-entra").value === "sim"
+  };
+  botao.disabled = true;
+  msg("Salvando…");
+  var r = await window.VM_SB.rpc("admin_pesquisa_item_salvar", { p_id: i.id, p_dados: dados });
+  botao.disabled = false;
+  var d = r.data || {};
+  if (r.error || d.ok !== true) { msg(erroDe(d), "erro"); return; }
+  msg("Salvo. A pesquisa já mostra assim.");
+  ABERTO = null;
+  carregar();
+}
+
+var busca = el("btn-pesq-buscar");
+if (busca) busca.addEventListener("click", function () { BUSCA = el("f-pesq-busca").value.trim(); ABERTO = null; carregar(); });
+var campoBusca = el("f-pesq-busca");
+if (campoBusca) campoBusca.addEventListener("keydown", function (e) {
+  if (e.key === "Enter") { BUSCA = this.value.trim(); ABERTO = null; carregar(); }
+});
+
+/* Bloco global: não depende de qual condomínio está escolhido. O gancho é
+   "vm:condos", disparado assim que o painel descobre se a conta é dona. */
+window.addEventListener("vm:condos", function () { ABERTO = null; msg(""); carregar(); });
+if (window.VM_CONDOS) carregar();       // script carregado depois do evento
 })();
 
 </script>

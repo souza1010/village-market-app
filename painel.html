@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!-- CSP (PROMPT 039). O montar.py acrescenta a esta politica o hash de cada
      script embutido e para o build se faltar algum. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-tiC8n+4d1lYm6gvDV3W9F+JqSZR2VlSefFDzAvpTO+8=' 'sha256-KBP75GXBZn8gW315M+fcBs1xhg51Ch2uQizoDKCCU1s=' 'sha256-gTxP/hsyApdwcDcsW5p1DAoWFDuJsk/I1EWveeXICX4=' 'sha256-ZnmZbzi0hU6Lluec1ttVYxLxfwzodXuncpwM168f6GA=' 'sha256-UHvrSet4C5vHAtl4/4PP7pz+4P6EU2XZrE49dBpe5Wg=' 'sha256-OpvEZR8XAnU/muAsEc2qiENLon4IEv7YagafXWQMICs=' 'sha256-UuUBJXrDPNkMnPDUojVWmvjNE/ItuKL2+PrpizzL/J4=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://przmqczdchshmcivcbbg.supabase.co; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-9HOkhKKj24JmNMgHoXNN1MVv2VfGv04KP3SbzD0tH+c=' 'sha256-1nLWLa+af46Fk0ZkL6c3MLIaO3zRjbxmGpo5yLIq++0=' 'sha256-XPGqYwULTTOb0mRe81xQdRsitjnQOHmLGOkmJj4Zt6U=' 'sha256-T3xLmSVglxYgsXvfA2eChNvoly6RLFejVtQbz5puQKI=' 'sha256-ZnmZbzi0hU6Lluec1ttVYxLxfwzodXuncpwM168f6GA=' 'sha256-UHvrSet4C5vHAtl4/4PP7pz+4P6EU2XZrE49dBpe5Wg=' 'sha256-OpvEZR8XAnU/muAsEc2qiENLon4IEv7YagafXWQMICs=' 'sha256-zJRfiJVX19URy0yiR2CV2XLGRelnwnrQxwk39FMZRDc=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://przmqczdchshmcivcbbg.supabase.co; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Village Market — Painel</title>
 <meta name="robots" content="noindex">
@@ -245,6 +245,7 @@
     </div>
 
     <div class="filtros" id="filtros-prob">
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-csv-problemas">Baixar (CSV)</button>
       <button type="button" class="filtro" data-f="abertos" aria-pressed="true">Em aberto</button>
       <button type="button" class="filtro" data-f="todos" aria-pressed="false">Todos</button>
     </div>
@@ -255,6 +256,7 @@
     <h3>Pedidos dos moradores <span class="tag" id="tag-pedidos" hidden>0 novos</span></h3>
     <p class="sub">Ordenado por quantos apartamentos pediram. Marque como comprado e o morador recebe o retorno.</p>
     <div class="filtros" id="filtros-ped">
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-csv-pedidos">Baixar (CSV)</button>
       <button type="button" class="filtro" data-f="pendentes" aria-pressed="true">A resolver</button>
       <button type="button" class="filtro" data-f="todos" aria-pressed="false">Todos</button>
     </div>
@@ -326,6 +328,16 @@
         </tr></thead>
         <tbody id="tbody-produtos"></tbody>
       </table>
+    </div>
+
+    <div id="bloco-import" style="margin-top:20px; border-top:1px solid var(--line); padding-top:16px">
+      <h4>Importar catálogo em lote</h4>
+      <p class="sub">Escolha o arquivo <b>catalogo.json</b>. O sistema confere tudo e mostra o que vai acontecer
+      <b>antes</b> de gravar. Importar o mesmo arquivo de novo atualiza, não duplica.</p>
+      <input type="file" id="f-import-arquivo" accept="application/json,.json" style="margin-top:10px">
+      <p class="lead" id="import-msg" style="font-size:14px" role="status" aria-live="polite"></p>
+      <div id="import-relatorio" hidden></div>
+      <button type="button" class="btn btn-primary btn-sm" id="btn-import-confirmar" hidden style="margin-top:12px">Confirmar importação</button>
     </div>
 
     <datalist id="lista-categorias"></datalist>
@@ -402,6 +414,363 @@
 
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug" crossorigin="anonymous"></script>
+<script>
+/* ============================================================
+   Village 360 — gerador de QR (modo byte, correção M, versões 1 a 10)
+
+   Feito aqui dentro de propósito: o link do condomínio não precisa
+   passear por serviço de terceiro só para virar quadradinho, e o painel
+   funciona sem internet de fora (a CSP continua fechada).
+
+   Cobre URLs de até ~270 caracteres, que é muito mais do que
+   https://app.villagemarket360.com.br/?c=<slug> precisa.
+
+   window.VM_QR.matriz(texto) -> array de arrays de 0/1
+   window.VM_QR.desenhar(canvas, texto, lado, margem)
+   ============================================================ */
+(function () {
+"use strict";
+
+/* ---------- GF(256), para a correção de erro Reed-Solomon ---------- */
+var EXP = new Uint8Array(512), LOG = new Uint8Array(256);
+(function () {
+  var x = 1;
+  for (var i = 0; i < 255; i++) {
+    EXP[i] = x;
+    LOG[x] = i;
+    x <<= 1;
+    if (x & 0x100) x ^= 0x11D;
+  }
+  for (var j = 255; j < 512; j++) EXP[j] = EXP[j - 255];
+})();
+function mul(a, b) { return (a === 0 || b === 0) ? 0 : EXP[LOG[a] + LOG[b]]; }
+
+function geradorRS(grau) {
+  var g = [1];
+  for (var i = 0; i < grau; i++) {
+    var novo = new Array(g.length + 1).fill(0);
+    for (var j = 0; j < g.length; j++) {
+      novo[j] ^= g[j];                       // termo em x
+      novo[j + 1] ^= mul(g[j], EXP[i]);      // termo constante (α^i)
+    }
+    g = novo;
+  }
+  return g;
+}
+
+function correcao(dados, qtd) {
+  var g = geradorRS(qtd);
+  var resto = dados.slice().concat(new Array(qtd).fill(0));
+  for (var i = 0; i < dados.length; i++) {
+    var c = resto[i];
+    if (c === 0) continue;
+    for (var j = 0; j < g.length; j++) resto[i + j] ^= mul(g[j], c);
+  }
+  return resto.slice(dados.length);
+}
+
+/* ---------- tabelas mínimas: versões 1..10, correção M ---------- */
+/* [dados totais, ec por bloco, blocos do grupo 1, dados por bloco g1,
+    blocos do grupo 2, dados por bloco g2] */
+var VERSOES = {
+  1:  [16, 10, 1, 16, 0, 0],
+  2:  [28, 16, 1, 28, 0, 0],
+  3:  [44, 26, 1, 44, 0, 0],
+  4:  [64, 18, 2, 32, 0, 0],
+  5:  [86, 24, 2, 43, 0, 0],
+  6:  [108, 16, 4, 27, 0, 0],
+  7:  [124, 18, 4, 31, 0, 0],
+  8:  [154, 22, 2, 38, 2, 39],
+  9:  [182, 22, 3, 36, 2, 37],
+  10: [216, 26, 4, 43, 1, 44]
+};
+var ALINHAMENTO = {
+  1: [], 2: [6, 18], 3: [6, 22], 4: [6, 26], 5: [6, 30],
+  6: [6, 34], 7: [6, 22, 38], 8: [6, 24, 42], 9: [6, 26, 46], 10: [6, 28, 50]
+};
+
+/* BCH, para as informações de formato e de versão */
+function bch(valor, gerador, bits) {
+  var v = valor << (bits - 1 === 14 ? 10 : 12);
+  var g = gerador;
+  var limite = bits - 1 === 14 ? 10 : 12;
+  for (var i = (bits - 1 === 14 ? 14 : 17); i >= limite; i--) {
+    if (v & (1 << i)) v ^= g << (i - (bits - 1 === 14 ? 10 : 12));
+  }
+  return v;
+}
+function infoFormato(mascara) {
+  // nível M = 00
+  var dados = (0 << 3) | mascara;
+  var v = dados << 10;
+  for (var i = 14; i >= 10; i--) if (v & (1 << i)) v ^= 0x537 << (i - 10);
+  return ((dados << 10) | v) ^ 0x5412;
+}
+function infoVersao(versao) {
+  var v = versao << 12;
+  for (var i = 17; i >= 12; i--) if (v & (1 << i)) v ^= 0x1F25 << (i - 12);
+  return (versao << 12) | v;
+}
+
+/* ---------- o desenho ---------- */
+function novaMatriz(tamanho) {
+  var m = [];
+  for (var i = 0; i < tamanho; i++) m.push(new Array(tamanho).fill(null));
+  return m;
+}
+function porFinder(m, linha, coluna) {
+  for (var i = -1; i <= 7; i++) {
+    for (var j = -1; j <= 7; j++) {
+      var y = linha + i, x = coluna + j;
+      if (y < 0 || x < 0 || y >= m.length || x >= m.length) continue;
+      var borda = (i === -1 || i === 7 || j === -1 || j === 7);
+      var quadro = (i >= 0 && i <= 6 && (j === 0 || j === 6)) || (j >= 0 && j <= 6 && (i === 0 || i === 6));
+      var miolo = (i >= 2 && i <= 4 && j >= 2 && j <= 4);
+      m[y][x] = borda ? 0 : (quadro || miolo ? 1 : 0);
+    }
+  }
+}
+function porAlinhamento(m, versao) {
+  var c = ALINHAMENTO[versao];
+  for (var a = 0; a < c.length; a++) {
+    for (var b = 0; b < c.length; b++) {
+      var y = c[a], x = c[b];
+      if (m[y][x] !== null) continue;           // não pisa nos finders
+      for (var i = -2; i <= 2; i++)
+        for (var j = -2; j <= 2; j++)
+          m[y + i][x + j] = (Math.abs(i) === 2 || Math.abs(j) === 2 || (i === 0 && j === 0)) ? 1 : 0;
+    }
+  }
+}
+
+function mascarar(mascara, linha, coluna) {
+  switch (mascara) {
+    case 0: return (linha + coluna) % 2 === 0;
+    case 1: return linha % 2 === 0;
+    case 2: return coluna % 3 === 0;
+    case 3: return (linha + coluna) % 3 === 0;
+    case 4: return (Math.floor(linha / 2) + Math.floor(coluna / 3)) % 2 === 0;
+    case 5: return ((linha * coluna) % 2) + ((linha * coluna) % 3) === 0;
+    case 6: return (((linha * coluna) % 2) + ((linha * coluna) % 3)) % 2 === 0;
+    default: return (((linha + coluna) % 2) + ((linha * coluna) % 3)) % 2 === 0;
+  }
+}
+
+function penalidade(m) {
+  var n = m.length, total = 0, i, j, k, contar;
+  // regra 1: sequências de 5+ iguais
+  for (i = 0; i < n; i++) {
+    for (var eixo = 0; eixo < 2; eixo++) {
+      contar = 1;
+      for (j = 1; j < n; j++) {
+        var atual = eixo ? m[j][i] : m[i][j];
+        var antes = eixo ? m[j - 1][i] : m[i][j - 1];
+        if (atual === antes) { contar++; } else { if (contar >= 5) total += 3 + (contar - 5); contar = 1; }
+      }
+      if (contar >= 5) total += 3 + (contar - 5);
+    }
+  }
+  // regra 2: blocos 2x2
+  for (i = 0; i < n - 1; i++)
+    for (j = 0; j < n - 1; j++)
+      if (m[i][j] === m[i + 1][j] && m[i][j] === m[i][j + 1] && m[i][j] === m[i + 1][j + 1]) total += 3;
+  // regra 3: padrão 1:1:3:1:1
+  var alvo1 = [1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0];
+  var alvo2 = [0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1];
+  for (i = 0; i < n; i++) {
+    for (j = 0; j + 10 < n; j++) {
+      var linhaOk1 = true, linhaOk2 = true, colOk1 = true, colOk2 = true;
+      for (k = 0; k < 11; k++) {
+        if (m[i][j + k] !== alvo1[k]) linhaOk1 = false;
+        if (m[i][j + k] !== alvo2[k]) linhaOk2 = false;
+        if (m[j + k][i] !== alvo1[k]) colOk1 = false;
+        if (m[j + k][i] !== alvo2[k]) colOk2 = false;
+      }
+      if (linhaOk1) total += 40;
+      if (linhaOk2) total += 40;
+      if (colOk1) total += 40;
+      if (colOk2) total += 40;
+    }
+  }
+  // regra 4: proporção de escuros
+  var escuros = 0;
+  for (i = 0; i < n; i++) for (j = 0; j < n; j++) if (m[i][j]) escuros++;
+  var pct = (escuros * 100) / (n * n);
+  total += Math.floor(Math.abs(pct - 50) / 5) * 10;
+  return total;
+}
+
+function bytesDe(texto) {
+  var saida = [];
+  var codificado = unescape(encodeURIComponent(texto));   // UTF-8
+  for (var i = 0; i < codificado.length; i++) saida.push(codificado.charCodeAt(i) & 0xff);
+  return saida;
+}
+
+function matriz(texto, mascaraForcada) {
+  var dados = bytesDe(texto);
+  var versao = 0, info = null, i, j, k;
+  for (var v = 1; v <= 10; v++) {
+    var cabecalho = 4 + (v < 10 ? 8 : 16);
+    if (VERSOES[v][0] * 8 >= cabecalho + dados.length * 8) { versao = v; info = VERSOES[v]; break; }
+  }
+  if (!versao) throw new Error("texto longo demais para o QR");
+
+  /* bits: modo + tamanho + dados + terminador + preenchimento */
+  var bits = [];
+  function por(valor, quantos) { for (var b = quantos - 1; b >= 0; b--) bits.push((valor >> b) & 1); }
+  por(4, 4);
+  por(dados.length, versao < 10 ? 8 : 16);
+  for (i = 0; i < dados.length; i++) por(dados[i], 8);
+  var capacidade = info[0] * 8;
+  for (i = 0; i < 4 && bits.length < capacidade; i++) bits.push(0);
+  while (bits.length % 8 !== 0) bits.push(0);
+  var enchimento = [0xEC, 0x11], e = 0;
+  while (bits.length < capacidade) { por(enchimento[e % 2], 8); e++; }
+
+  var codigos = [];
+  for (i = 0; i < bits.length; i += 8) {
+    var b = 0;
+    for (j = 0; j < 8; j++) b = (b << 1) | bits[i + j];
+    codigos.push(b);
+  }
+
+  /* blocos de dados e de correção */
+  var blocos = [], ecs = [], pos = 0;
+  var lista = [];
+  for (i = 0; i < info[2]; i++) lista.push(info[3]);
+  for (i = 0; i < info[4]; i++) lista.push(info[5]);
+  for (i = 0; i < lista.length; i++) {
+    var bloco = codigos.slice(pos, pos + lista[i]);
+    pos += lista[i];
+    blocos.push(bloco);
+    ecs.push(correcao(bloco, info[1]));
+  }
+  var sequencia = [];
+  var maiorDado = Math.max.apply(null, lista);
+  for (i = 0; i < maiorDado; i++)
+    for (j = 0; j < blocos.length; j++)
+      if (i < blocos[j].length) sequencia.push(blocos[j][i]);
+  for (i = 0; i < info[1]; i++)
+    for (j = 0; j < ecs.length; j++) sequencia.push(ecs[j][i]);
+
+  /* matriz base */
+  var n = 17 + versao * 4;
+  var base = novaMatriz(n);
+  porFinder(base, 0, 0); porFinder(base, 0, n - 7); porFinder(base, n - 7, 0);
+  porAlinhamento(base, versao);
+  for (i = 8; i < n - 8; i++) {
+    base[6][i] = (i % 2 === 0) ? 1 : 0;
+    base[i][6] = (i % 2 === 0) ? 1 : 0;
+  }
+  base[n - 8][8] = 1;                                   // módulo sempre escuro
+  // reserva do formato
+  for (i = 0; i < 9; i++) {
+    if (base[8][i] === null) base[8][i] = 2;
+    if (base[i][8] === null) base[i][8] = 2;
+  }
+  for (i = 0; i < 8; i++) {
+    if (base[8][n - 1 - i] === null) base[8][n - 1 - i] = 2;
+    if (base[n - 1 - i][8] === null) base[n - 1 - i][8] = 2;
+  }
+  if (versao >= 7) {
+    for (i = 0; i < 6; i++)
+      for (j = 0; j < 3; j++) {
+        base[n - 11 + j][i] = 2;
+        base[i][n - 11 + j] = 2;
+      }
+  }
+
+  /* dados em ziguezague */
+  var bitsDados = [];
+  for (i = 0; i < sequencia.length; i++)
+    for (j = 7; j >= 0; j--) bitsDados.push((sequencia[i] >> j) & 1);
+
+  var idx = 0, subindo = true;
+  for (var col = n - 1; col > 0; col -= 2) {
+    if (col === 6) col--;
+    for (var passo = 0; passo < n; passo++) {
+      var linha = subindo ? n - 1 - passo : passo;
+      for (var d = 0; d < 2; d++) {
+        var x = col - d;
+        if (base[linha][x] === null) {
+          base[linha][x] = idx < bitsDados.length ? bitsDados[idx] : 0;
+          base[linha][x] |= 4;                          // marca que é dado
+          idx++;
+        }
+      }
+    }
+    subindo = !subindo;
+  }
+
+  /* escolhe a máscara com menor penalidade */
+  var melhor = null, melhorNota = Infinity, melhorMascara = 0;
+  for (var msk = 0; msk < 8; msk++) {
+    if (mascaraForcada !== undefined && msk !== mascaraForcada) continue;
+    var m = [];
+    for (i = 0; i < n; i++) {
+      m.push([]);
+      for (j = 0; j < n; j++) {
+        var c = base[i][j];
+        if (c === 2) { m[i].push(0); continue; }
+        var bit = (c & 4) ? (c & 1) : c;
+        if ((c & 4) && mascarar(msk, i, j)) bit ^= 1;
+        m[i].push(bit);
+      }
+    }
+    // formato
+    /* formato: 15 bits, do mais significativo para o menos.
+       Cópia 1 em volta do finder de cima-esquerda; cópia 2 dividida
+       entre a coluna da esquerda-baixo e a linha 8 da direita. */
+    var f = infoFormato(msk);
+    for (i = 0; i < 15; i++) {
+      var bit2 = (f >> (14 - i)) & 1;
+      if (i < 6) m[8][i] = bit2;
+      else if (i === 6) m[8][7] = bit2;
+      else if (i === 7) m[8][8] = bit2;
+      else if (i === 8) m[7][8] = bit2;
+      else m[14 - i][8] = bit2;
+      if (i < 7) m[n - 1 - i][8] = bit2;
+      else m[8][n - 15 + i] = bit2;
+    }
+    m[n - 8][8] = 1;
+    if (versao >= 7) {
+      var vi = infoVersao(versao);
+      for (i = 0; i < 18; i++) {
+        var bit3 = (vi >> i) & 1;
+        m[Math.floor(i / 3)][n - 11 + (i % 3)] = bit3;
+        m[n - 11 + (i % 3)][Math.floor(i / 3)] = bit3;
+      }
+    }
+    var nota = penalidade(m);
+    if (nota < melhorNota) { melhorNota = nota; melhor = m; melhorMascara = msk; }
+  }
+  return melhor;
+}
+
+function desenhar(canvas, texto, lado, margem) {
+  var m = matriz(texto);
+  var n = m.length;
+  margem = margem === undefined ? 4 : margem;
+  lado = lado || 360;
+  var modulo = Math.floor(lado / (n + margem * 2));
+  var tamanho = modulo * (n + margem * 2);
+  canvas.width = tamanho;
+  canvas.height = tamanho;
+  var ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, tamanho, tamanho);
+  ctx.fillStyle = "#12594A";                       // verde da marca
+  for (var i = 0; i < n; i++)
+    for (var j = 0; j < n; j++)
+      if (m[i][j]) ctx.fillRect((j + margem) * modulo, (i + margem) * modulo, modulo, modulo);
+  return canvas;
+}
+
+window.VM_QR = { matriz: matriz, desenhar: desenhar };
+})();
+
+</script>
 <script>
 /* ============================================================
    Village Market — Painel da operação
@@ -646,6 +1015,8 @@ function baixarCSV(nome, linhas) {
   document.body.appendChild(a); a.click();
   setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
 }
+
+window.VM_BAIXAR_CSV = baixarCSV;
 
 el("btn-csv").addEventListener("click", function () {
   var linhas = [["data", "nome", "bloco", "ap", "whatsapp", "quer", "frequencia",
@@ -1048,6 +1419,37 @@ function ligarFiltro(containerId, chave) {
     });
   });
 }
+function dataBR(d) {
+  try { return new Date(d).toLocaleString("pt-BR"); } catch (e) { return ""; }
+}
+
+/* exportações: o que o operador precisa levar para planilha */
+function exportarProblemas() {
+  if (!CONDO) return;
+  var linhas = [["protocolo", "aberto em", "categoria", "situação", "bloco", "apartamento", "nome",
+                 "whatsapp", "valor", "texto", "resposta"]];
+  CACHE.problemas.forEach(function (p) {
+    linhas.push([p.protocolo, dataBR(p.criado_em), CATS[p.categoria] || p.categoria,
+                 ST_PROB[p.status] || p.status, p.bloco || "", p.ap || "", p.nome || "",
+                 p.whatsapp || "", p.valor || "", p.texto || "", p.resposta || ""]);
+  });
+  window.VM_BAIXAR_CSV("ajuda-" + CONDO.slug + ".csv", linhas);
+}
+
+function exportarPedidos() {
+  if (!CONDO) return;
+  var linhas = [["pedido", "primeiro pedido em", "apoios", "situação", "categoria", "bloco",
+                 "apartamento", "nome", "resposta"]];
+  CACHE.pedidos.forEach(function (p) {
+    linhas.push([p.texto, dataBR(p.criado_em), p.apoios, ST_PED[p.status] || p.status,
+                 p.categoria || "", p.bloco || "", p.ap || "", p.nome || "", p.resposta || ""]);
+  });
+  window.VM_BAIXAR_CSV("faltou-" + CONDO.slug + ".csv", linhas);
+}
+
+el("btn-csv-problemas").addEventListener("click", exportarProblemas);
+el("btn-csv-pedidos").addEventListener("click", exportarPedidos);
+
 ligarFiltro("filtros-prob", "prob");
 ligarFiltro("filtros-ped", "ped");
 
@@ -1175,6 +1577,47 @@ function copiar(texto, botao, feito) {
   else pronto();
 }
 
+
+/* ---------- QR do link da pesquisa ---------- */
+function mostrarQR(c) {
+  var antigo = el("qr-caixa");
+  if (antigo) antigo.remove();
+  if (!window.VM_QR) { msg("O gerador de QR não carregou.", "erro"); return; }
+  var caixa = txt("div", "block");
+  caixa.id = "qr-caixa";
+  caixa.style.marginTop = "14px";
+  caixa.appendChild(txt("h4", null, "QR de " + c.nome));
+  caixa.appendChild(txt("p", "cap", "Imprima e cole no elevador ou no mural. Ele abre a pesquisa deste condomínio."));
+  var canvas = document.createElement("canvas");
+  canvas.id = "qr-canvas";
+  canvas.style.cssText = "margin-top:12px;max-width:100%;height:auto;border-radius:12px";
+  caixa.appendChild(canvas);
+  var link = linkDe(c.slug);
+  try {
+    window.VM_QR.desenhar(canvas, link, 420, 4);
+  } catch (e) {
+    msg("Não consegui gerar o QR deste link.", "erro");
+    return;
+  }
+  caixa.appendChild(txt("p", "cap", link));
+  var acoes = txt("div", "acoes");
+  acoes.style.marginTop = "10px";
+  var bBaixar = txt("button", "btn btn-primary btn-sm", "Baixar PNG");
+  bBaixar.type = "button";
+  bBaixar.addEventListener("click", function () {
+    var a = document.createElement("a");
+    a.href = canvas.toDataURL("image/png");
+    a.download = "qr-" + c.slug + ".png";
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+  var bFechar = txt("button", "btn btn-ghost btn-sm", "Fechar");
+  bFechar.type = "button";
+  bFechar.addEventListener("click", function () { caixa.remove(); });
+  acoes.appendChild(bBaixar); acoes.appendChild(bFechar);
+  caixa.appendChild(acoes);
+  el("bloco-condos").appendChild(caixa);
+}
+
 /* ---------- lista ---------- */
 function desenhar() {
   var corpo = limpar(el("tbody-condos"));
@@ -1200,6 +1643,11 @@ function desenhar() {
     bLink.type = "button";
     bLink.addEventListener("click", function () { copiar(linkDe(c.slug), bLink, "Link copiado"); });
     acao.appendChild(bLink);
+
+    var bQR = txt("button", "btn btn-ghost btn-sm", "QR");
+    bQR.type = "button";
+    bQR.addEventListener("click", function () { mostrarQR(c); });
+    acao.appendChild(bQR);
 
     var bEd = txt("button", "btn btn-ghost btn-sm", EDITANDO === c.id ? "Fechar" : "Editar");
     bEd.type = "button";
@@ -2169,7 +2617,7 @@ async function enviar(p, card, thumb) {
   }
   var r = await sb.rpc("admin_produto_imagem", { p_id: p.id, p_tem: true });
   if (r.error || !(r.data || {}).ok) { imagemMsg(erroDe(r.data), "erro"); return; }
-  imagemMsg("Imagem salva.");
+  msg("Imagem salva.");
   carregar();
 }
 
@@ -2181,7 +2629,7 @@ async function removerImagem(p, botao) {
   var r = await sb.rpc("admin_produto_imagem", { p_id: p.id, p_tem: false });
   botao.disabled = false;
   if (r.error || !(r.data || {}).ok) { imagemMsg(erroDe(r.data), "erro"); return; }
-  imagemMsg("Imagem removida.");
+  msg("Imagem removida.");
   carregar();
 }
 
@@ -2389,6 +2837,99 @@ async function recarregarApoio() {
   (d.marcas || []).forEach(function (m) { lm.appendChild(new Option(m.nome)); });
   el("bloco-produtos-novo-abrir").hidden = d.dono !== true;
 }
+
+
+/* ---------- importar catálogo em lote (03u) ---------- */
+var LOTE = null;
+
+function impMsg(t, tipo) {
+  var m = el("import-msg");
+  m.textContent = t || "";
+  m.style.color = tipo === "erro" ? "var(--erro, #b3261e)" : "";
+}
+
+function relatorio(d) {
+  var box = limpar(el("import-relatorio"));
+  box.hidden = false;
+  var linhas = [
+    ["Linhas no arquivo", d.linhas],
+    ["Vão ser criados", d.criar !== undefined ? d.criar : d.criados],
+    ["Vão ser atualizados", d.atualizar !== undefined ? d.atualizar : d.atualizados],
+    ["Com erro", (d.erros || []).length]
+  ];
+  var ul = txt("div");
+  linhas.forEach(function (l) {
+    var p = txt("p", "cap", l[0] + ": " + l[1]);
+    p.style.margin = "2px 0";
+    ul.appendChild(p);
+  });
+  box.appendChild(ul);
+
+  if ((d.erros || []).length) {
+    box.appendChild(txt("p", "sub", "Nada foi gravado. Corrija estas linhas no arquivo e tente de novo:"));
+    var tab = txt("div", "tablewrap");
+    var t = document.createElement("table");
+    var thead = document.createElement("thead");
+    var trh = document.createElement("tr");
+    ["Linha", "Produto", "Problema"].forEach(function (h) {
+      var th = document.createElement("th"); th.scope = "col"; th.textContent = h; trh.appendChild(th);
+    });
+    thead.appendChild(trh); t.appendChild(thead);
+    var tb = document.createElement("tbody");
+    d.erros.slice(0, 50).forEach(function (e) {
+      var tr = txt("tr");
+      tr.appendChild(txt("td", null, String(e.linha)));
+      tr.appendChild(txt("td", null, e.produto || "—"));
+      tr.appendChild(txt("td", null, e.erro));
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb); tab.appendChild(t); box.appendChild(tab);
+    el("btn-import-confirmar").hidden = true;
+    return;
+  }
+  el("btn-import-confirmar").hidden = !d.previa;
+}
+
+async function lerArquivo(entrada) {
+  var arquivo = entrada.files && entrada.files[0];
+  entrada.value = "";
+  if (!arquivo) return;
+  impMsg("Lendo o arquivo…");
+  var texto = await arquivo.text();
+  var itens;
+  try {
+    itens = JSON.parse(texto);
+  } catch (e) {
+    impMsg("Esse arquivo não é um JSON válido.", "erro");
+    return;
+  }
+  if (!Array.isArray(itens)) { impMsg("O arquivo precisa ser uma lista de produtos.", "erro"); return; }
+  LOTE = itens;
+  var r = await window.VM_SB.rpc("admin_catalogo_importar", { p_itens: itens, p_confirmar: false });
+  var d = r.data || {};
+  if (r.error || d.ok !== true) { impMsg(erroDe(d), "erro"); return; }
+  impMsg("Prévia de " + arquivo.name + ": confira antes de gravar.");
+  relatorio(d);
+}
+
+async function confirmarImport(botao) {
+  if (!LOTE) return;
+  botao.disabled = true;
+  impMsg("Gravando…");
+  var r = await window.VM_SB.rpc("admin_catalogo_importar", { p_itens: LOTE, p_confirmar: true });
+  botao.disabled = false;
+  var d = r.data || {};
+  if (r.error || d.ok !== true) { impMsg(erroDe(d), "erro"); return; }
+  if (!d.gravado) { impMsg("Não gravei: o arquivo ainda tem erro.", "erro"); relatorio(d); return; }
+  impMsg("Pronto: " + d.criados + " criados, " + d.atualizados + " atualizados.");
+  relatorio(d);
+  el("btn-import-confirmar").hidden = true;
+  LOTE = null;
+  carregarCondo();
+}
+
+el("f-import-arquivo").addEventListener("change", function () { lerArquivo(this); });
+el("btn-import-confirmar").addEventListener("click", function () { confirmarImport(this); });
 
 /* ---------- entrada ---------- */
 el("btn-produto-buscar").addEventListener("click", function () { BUSCA = el("f-produto-busca").value.trim(); ABERTO = null; carregarCondo(); });

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!-- CSP (PROMPT 039). O montar.py acrescenta a esta politica o hash de cada
      script embutido e para o build se faltar algum. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-tiC8n+4d1lYm6gvDV3W9F+JqSZR2VlSefFDzAvpTO+8=' 'sha256-KBP75GXBZn8gW315M+fcBs1xhg51Ch2uQizoDKCCU1s=' 'sha256-gTxP/hsyApdwcDcsW5p1DAoWFDuJsk/I1EWveeXICX4=' 'sha256-ZnmZbzi0hU6Lluec1ttVYxLxfwzodXuncpwM168f6GA=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-tiC8n+4d1lYm6gvDV3W9F+JqSZR2VlSefFDzAvpTO+8=' 'sha256-KBP75GXBZn8gW315M+fcBs1xhg51Ch2uQizoDKCCU1s=' 'sha256-gTxP/hsyApdwcDcsW5p1DAoWFDuJsk/I1EWveeXICX4=' 'sha256-ZnmZbzi0hU6Lluec1ttVYxLxfwzodXuncpwM168f6GA=' 'sha256-UHvrSet4C5vHAtl4/4PP7pz+4P6EU2XZrE49dBpe5Wg=' 'sha256-OpvEZR8XAnU/muAsEc2qiENLon4IEv7YagafXWQMICs=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Village Market — Painel</title>
 <meta name="robots" content="noindex">
@@ -289,6 +289,42 @@
     </div>
     <button type="button" class="btn btn-primary" id="btn-promo" style="margin-top:16px">Publicar promoção</button>
     <p class="lead" id="promo-msg" style="font-size:14px"></p>
+  </div>
+
+  <div class="block" id="bloco-backup" hidden>
+    <h3>Backup dos dados</h3>
+    <p class="sub">O plano atual do banco não faz cópia automática. Baixe o arquivo de vez em quando e guarde
+    em lugar seguro — ele tem nome, apartamento e WhatsApp dos moradores.</p>
+    <button type="button" class="btn btn-primary btn-sm" id="btn-backup" style="margin-top:14px">Baixar backup (JSON)</button>
+    <p class="lead" id="backup-msg" style="font-size:14px" role="status" aria-live="polite"></p>
+  </div>
+
+  <div class="block" id="bloco-moradores">
+    <h3>Moradores — suporte</h3>
+    <p class="sub">Para quem perdeu o celular, trocou de aparelho ou mudou de apartamento. Confirme a pessoa
+    por fora do app antes de gerar código ou revogar aparelho.</p>
+
+    <div class="dupla" style="margin-top:14px">
+      <div class="field" style="margin:0">
+        <label for="f-morador-busca">Procurar por bloco, apartamento ou nome</label>
+        <input id="f-morador-busca" type="text" placeholder="302, B, Maria" autocomplete="off">
+      </div>
+      <div class="field" style="margin:0; align-self:end">
+        <button type="button" class="btn btn-primary btn-sm" id="btn-morador-buscar">Procurar</button>
+      </div>
+    </div>
+
+    <p class="lead" id="moradores-msg" style="font-size:14px" role="status" aria-live="polite"></p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th scope="col">Apartamento</th><th scope="col">Vínculo</th>
+          <th scope="col">Aparelhos</th><th scope="col">Último uso</th><th scope="col"></th>
+        </tr></thead>
+        <tbody id="tbody-moradores"></tbody>
+      </table>
+    </div>
   </div>
 
   <div class="block" id="bloco-codigos">
@@ -1409,6 +1445,301 @@ window.addEventListener("vm:condo", function (e) {
   carregar();
 });
 if (window.VM_CONDO) { CONDO = window.VM_CONDO; carregar(); }
+})();
+
+</script>
+<script>
+/* ============================================================
+   Village 360 — suporte ao morador no painel (03o)
+
+   Acha o morador pelo bloco, apartamento ou nome; mostra os aparelhos
+   dele; gera código de recuperação (quando perdeu o celular) e revoga
+   aparelho (perdido, roubado, morador que mudou).
+
+   O código de recuperação aparece UMA vez, na resposta — não é guardado
+   em lugar nenhum e não volta na lista. Token de morador nunca sai do
+   banco, nem em hash. Quem decide o que esta conta pode é o banco.
+   ============================================================ */
+(function () {
+"use strict";
+
+var CONDO = null;
+var ABERTO = null;
+var ERROS = {
+  sem_login: "Sua sessão expirou. Entre de novo.",
+  sem_permissao: "Esta conta não pode fazer isso.",
+  motivo_obrigatorio: "Escreva o motivo (pelo menos 5 letras).",
+  tente_mais_tarde: "Muitas tentativas para este morador. Tente daqui a pouco."
+};
+
+function el(id) { return document.getElementById(id); }
+function limpar(n) { while (n.firstChild) n.removeChild(n.firstChild); return n; }
+function txt(tag, cls, t) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (t !== undefined && t !== null) e.textContent = t;
+  return e;
+}
+function quando(d) {
+  if (!d) return "—";
+  try { return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" }); }
+  catch (e) { return "—"; }
+}
+function msg(t, tipo) {
+  var m = el("moradores-msg");
+  m.textContent = t || "";
+  m.style.color = tipo === "erro" ? "var(--erro, #b3261e)" : "";
+}
+function erroDe(d) { return ERROS[(d || {}).erro] || "Não deu certo agora."; }
+function nomeDe(m) {
+  return (m.bloco ? "Bloco " + m.bloco + " · " : "") + "Ap " + m.ap + (m.nome ? " · " + m.nome : "");
+}
+
+async function carregar() {
+  var corpo = limpar(el("tbody-moradores"));
+  if (!CONDO || !window.VM_SB) return;
+  var r = await window.VM_SB.rpc("admin_moradores_listar", {
+    p_condominio: CONDO.id, p_busca: el("f-morador-busca").value.trim() || null
+  });
+  var d = r.data || {};
+  if (r.error || d.ok !== true) {
+    var tr0 = txt("tr"), td0 = txt("td", null, "Não deu para carregar agora.");
+    td0.colSpan = 5; tr0.appendChild(td0); corpo.appendChild(tr0);
+    return;
+  }
+  if (!d.moradores.length) {
+    var tr1 = txt("tr");
+    var td1 = txt("td", null, el("f-morador-busca").value.trim()
+      ? "Ninguém encontrado com esse bloco, apartamento ou nome."
+      : "Nenhum morador vinculado neste condomínio ainda.");
+    td1.colSpan = 5; tr1.appendChild(td1); corpo.appendChild(tr1);
+    return;
+  }
+  d.moradores.forEach(function (m) {
+    var tr = txt("tr");
+    var ap = txt("td");
+    ap.appendChild(txt("div", null, (m.bloco ? m.bloco + " / " : "") + m.ap));
+    if (m.nome) ap.appendChild(txt("div", "cap", m.nome));
+    tr.appendChild(ap);
+    tr.appendChild(txt("td", null, m.nivel === 2 ? "Verificado ✓" : "Declarado"));
+    tr.appendChild(txt("td", null, String(m.aparelhos) + (m.aparelhos_revogados ? " (+" + m.aparelhos_revogados + " revogados)" : "")));
+    tr.appendChild(txt("td", null, quando(m.ultimo_uso)));
+
+    var acao = txt("td");
+    var b = txt("button", "btn btn-ghost btn-sm", ABERTO === m.grupo_id ? "Fechar" : "Atender");
+    b.type = "button";
+    b.addEventListener("click", function () {
+      ABERTO = ABERTO === m.grupo_id ? null : m.grupo_id;
+      msg("");
+      carregar();
+    });
+    acao.appendChild(b);
+    tr.appendChild(acao);
+    corpo.appendChild(tr);
+
+    if (ABERTO === m.grupo_id) {
+      var trD = txt("tr"), tdD = txt("td");
+      tdD.colSpan = 5;
+      tdD.appendChild(painelAtendimento(m));
+      trD.appendChild(tdD);
+      corpo.appendChild(trD);
+    }
+  });
+}
+
+function painelAtendimento(m) {
+  var box = txt("div", "block");
+  box.style.margin = "0";
+  box.appendChild(txt("h4", null, "Atendimento — " + nomeDe(m)));
+  box.appendChild(txt("p", "cap", "Confirme com a pessoa por fora do app (portaria, WhatsApp, pessoalmente) antes de gerar código ou revogar aparelho."));
+
+  var acoes = txt("div", "acoes");
+  acoes.style.marginTop = "12px";
+  var bRec = txt("button", "btn btn-primary btn-sm", "Gerar código de recuperação");
+  bRec.type = "button";
+  bRec.addEventListener("click", function () { recuperar(m, bRec); });
+  acoes.appendChild(bRec);
+  box.appendChild(acoes);
+
+  var caixa = txt("div", null);
+  caixa.id = "recuperacao-caixa";
+  box.appendChild(caixa);
+
+  var tabela = txt("div", "tablewrap");
+  tabela.style.marginTop = "14px";
+  var t = document.createElement("table");
+  var thead = document.createElement("thead");
+  var trh = document.createElement("tr");
+  ["Aparelho", "Entrou", "Último uso", "Situação", ""].forEach(function (h) {
+    var th = document.createElement("th"); th.scope = "col"; th.textContent = h; trh.appendChild(th);
+  });
+  thead.appendChild(trh);
+  t.appendChild(thead);
+  var tb = document.createElement("tbody");
+  tb.id = "tbody-aparelhos";
+  t.appendChild(tb);
+  tabela.appendChild(t);
+  box.appendChild(tabela);
+  aparelhos(m);
+  return box;
+}
+
+var ORIGEM = { app: "pelo app", pesquisa: "pela pesquisa", pareamento: "pareado", recuperacao: "recuperado" };
+
+async function aparelhos(m) {
+  var r = await window.VM_SB.rpc("admin_morador_aparelhos", { p_grupo: m.grupo_id });
+  var d = r.data || {};
+  var tb = el("tbody-aparelhos");
+  if (!tb) return;
+  limpar(tb);
+  if (r.error || d.ok !== true) {
+    var tr0 = txt("tr"), td0 = txt("td", null, "Não deu para carregar os aparelhos.");
+    td0.colSpan = 5; tr0.appendChild(td0); tb.appendChild(tr0);
+    return;
+  }
+  if (!d.aparelhos.length) {
+    var tr1 = txt("tr"), td1 = txt("td", null, "Nenhum aparelho.");
+    td1.colSpan = 5; tr1.appendChild(td1); tb.appendChild(tr1);
+    return;
+  }
+  d.aparelhos.forEach(function (a) {
+    var tr = txt("tr");
+    tr.appendChild(txt("td", null, a.apelido || (ORIGEM[a.origem] || a.origem)));
+    tr.appendChild(txt("td", null, quando(a.criado_em)));
+    tr.appendChild(txt("td", null, quando(a.ultimo_uso_em)));
+    tr.appendChild(txt("td", null, a.revogado_em ? "Revogado em " + quando(a.revogado_em)
+                                                 : (a.ativo ? "Ativo" : "Vencido")));
+    var acao = txt("td");
+    if (a.ativo) {
+      var b = txt("button", "btn btn-ghost btn-sm", "Revogar");
+      b.type = "button";
+      b.addEventListener("click", function () { revogar(m, a, b); });
+      acao.appendChild(b);
+    }
+    tr.appendChild(acao);
+    tb.appendChild(tr);
+  });
+}
+
+async function recuperar(m, botao) {
+  var motivo = window.prompt("Por que gerar código de recuperação para " + nomeDe(m) +
+    "? (ex.: trocou de celular, confirmei por WhatsApp)");
+  if (motivo === null) return;
+  botao.disabled = true;
+  var r = await window.VM_SB.rpc("admin_gerar_recuperacao", { p_grupo: m.grupo_id, p_motivo: motivo });
+  botao.disabled = false;
+  var d = r.data || {};
+  if (r.error || d.ok !== true) { msg(erroDe(d), "erro"); return; }
+
+  var caixa = limpar(el("recuperacao-caixa"));
+  caixa.style.marginTop = "14px";
+  caixa.appendChild(txt("p", "sub", "Leia este código para a pessoa agora. Ele aparece uma única vez, vale 24 horas e só pode ser usado uma vez."));
+  var cod = txt("p", "codigo-apto", d.codigo);
+  cod.style.fontSize = "22px";
+  caixa.appendChild(cod);
+  var b = txt("button", "btn btn-ghost btn-sm", "Já passei — esconder");
+  b.type = "button";
+  b.addEventListener("click", function () { limpar(caixa); msg(""); });
+  caixa.appendChild(b);
+  msg("Código gerado para " + nomeDe(m) + ". Não fica guardado: se perder, gere outro.");
+}
+
+async function revogar(m, a, botao) {
+  var motivo = window.prompt("Por que revogar este aparelho de " + nomeDe(m) +
+    "? (ex.: celular perdido, morador mudou)");
+  if (motivo === null) return;
+  botao.disabled = true;
+  var r = await window.VM_SB.rpc("admin_revogar_dispositivo", { p_dispositivo: a.dispositivo_id, p_motivo: motivo });
+  botao.disabled = false;
+  var d = r.data || {};
+  if (r.error || d.ok !== true) { msg(erroDe(d), "erro"); return; }
+  msg(d.ja_revogado ? "Este aparelho já estava revogado." : "Aparelho revogado. Quem estiver com ele perde o acesso na próxima vez que abrir o app.");
+  aparelhos(m);
+  carregar();
+}
+
+el("btn-morador-buscar").addEventListener("click", function () { ABERTO = null; msg(""); carregar(); });
+el("f-morador-busca").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") { ABERTO = null; msg(""); carregar(); }
+});
+
+window.addEventListener("vm:condo", function (e) {
+  CONDO = e.detail || null;
+  ABERTO = null;
+  msg("");
+  el("f-morador-busca").value = "";
+  carregar();
+});
+if (window.VM_CONDO) { CONDO = window.VM_CONDO; carregar(); }
+})();
+
+</script>
+<script>
+/* ============================================================
+   Village 360 — backup dos dados pelo painel (03p)
+
+   O plano do Supabase não faz backup automático. O esquema do banco
+   está no Git; o dado, não. Este botão baixa tudo num arquivo JSON,
+   para o dono guardar em lugar seguro.
+
+   Só o dono enxerga o botão — e, o que importa de verdade, só o dono
+   passa pela função no banco. O arquivo tem dado pessoal de morador:
+   a tela avisa isso antes.
+   ============================================================ */
+(function () {
+"use strict";
+
+function el(id) { return document.getElementById(id); }
+
+function msg(t, tipo) {
+  var m = el("backup-msg");
+  m.textContent = t || "";
+  m.style.color = tipo === "erro" ? "var(--erro, #b3261e)" : "";
+}
+
+function baixar(texto, nome) {
+  var blob = new Blob([texto], { type: "application/json" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = nome;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+}
+
+function carimbo() {
+  var d = new Date();
+  function dois(n) { return (n < 10 ? "0" : "") + n; }
+  return d.getFullYear() + dois(d.getMonth() + 1) + dois(d.getDate()) + "-" + dois(d.getHours()) + dois(d.getMinutes());
+}
+
+async function exportar(botao) {
+  botao.disabled = true;
+  msg("Gerando o arquivo…");
+  var r = await window.VM_SB.rpc("admin_backup_json");
+  botao.disabled = false;
+  var d = r.data || {};
+  if (r.error || d.ok !== true) {
+    msg(d.erro === "sem_permissao" ? "Só o dono pode baixar o backup."
+        : d.erro === "grande_demais" ? "O banco ficou grande demais para este formato (" + d.linhas + " linhas). Hora de backup automático do Supabase."
+        : "Não deu para gerar agora.", "erro");
+    return;
+  }
+  baixar(JSON.stringify(d, null, 1), "village360-backup-" + carimbo() + ".json");
+  msg("Backup baixado: " + d.linhas + " linhas. Guarde em lugar seguro — o arquivo tem dados pessoais de moradores.");
+}
+
+var botao = el("btn-backup");
+if (botao) botao.addEventListener("click", function () { exportar(botao); });
+
+function ajustar() {
+  var bloco = el("bloco-backup");
+  if (bloco) bloco.hidden = window.VM_DONO !== true;
+}
+window.addEventListener("vm:condos", ajustar);
+ajustar();
 })();
 
 </script>

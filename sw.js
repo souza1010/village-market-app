@@ -13,7 +13,7 @@
    caminho onde este app está publicado: ele só lê e só apaga o que é dele. */
 var ESCOPO = self.registration.scope;
 var PREFIXO = "village360:" + new URL(ESCOPO).pathname + ":";
-var CACHE = PREFIXO + "v6";
+var CACHE = PREFIXO + "v7";
 
 /* Só entra aqui o que o montar.py realmente publica.
    O JavaScript das telas NÃO aparece nesta lista: ele vai embutido
@@ -24,6 +24,7 @@ var BASE = [
   "index.html",
   "app.html",
   "painel.html",
+  "privacidade.html",
   "estilo.css",
   "config.js",
   "manifest.webmanifest",

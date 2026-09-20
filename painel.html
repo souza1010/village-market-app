@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!-- CSP (PROMPT 039). O montar.py acrescenta a esta politica o hash de cada
      script embutido e para o build se faltar algum. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-tiC8n+4d1lYm6gvDV3W9F+JqSZR2VlSefFDzAvpTO+8=' 'sha256-KBP75GXBZn8gW315M+fcBs1xhg51Ch2uQizoDKCCU1s=' 'sha256-gTxP/hsyApdwcDcsW5p1DAoWFDuJsk/I1EWveeXICX4=' 'sha256-ZnmZbzi0hU6Lluec1ttVYxLxfwzodXuncpwM168f6GA=' 'sha256-UHvrSet4C5vHAtl4/4PP7pz+4P6EU2XZrE49dBpe5Wg=' 'sha256-OpvEZR8XAnU/muAsEc2qiENLon4IEv7YagafXWQMICs=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-tiC8n+4d1lYm6gvDV3W9F+JqSZR2VlSefFDzAvpTO+8=' 'sha256-KBP75GXBZn8gW315M+fcBs1xhg51Ch2uQizoDKCCU1s=' 'sha256-gTxP/hsyApdwcDcsW5p1DAoWFDuJsk/I1EWveeXICX4=' 'sha256-ZnmZbzi0hU6Lluec1ttVYxLxfwzodXuncpwM168f6GA=' 'sha256-UHvrSet4C5vHAtl4/4PP7pz+4P6EU2XZrE49dBpe5Wg=' 'sha256-OpvEZR8XAnU/muAsEc2qiENLon4IEv7YagafXWQMICs=' 'sha256-UuUBJXrDPNkMnPDUojVWmvjNE/ItuKL2+PrpizzL/J4=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://przmqczdchshmcivcbbg.supabase.co; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Village Market — Painel</title>
 <meta name="robots" content="noindex">
@@ -289,6 +289,47 @@
     </div>
     <button type="button" class="btn btn-primary" id="btn-promo" style="margin-top:16px">Publicar promoção</button>
     <p class="lead" id="promo-msg" style="font-size:14px"></p>
+  </div>
+
+  <div class="block" id="bloco-produtos">
+    <h3>Produtos</h3>
+    <p class="sub">O catálogo da Village. Aqui você cadastra o SKU, bipa o código de barras, põe a foto pela galeria
+    e define preço, disponibilidade e promoção <b>deste condomínio</b>.</p>
+
+    <div class="dupla" style="margin-top:14px">
+      <div class="field" style="margin:0">
+        <label for="f-produto-busca">Procurar por nome, marca, categoria ou código de barras</label>
+        <input id="f-produto-busca" type="text" placeholder="coca, chocolate, 789…" autocomplete="off">
+      </div>
+      <div class="field" style="margin:0; align-self:end">
+        <button type="button" class="btn btn-primary btn-sm" id="btn-produto-buscar">Procurar</button>
+      </div>
+    </div>
+
+    <div class="acoes" style="margin-top:12px">
+      <button type="button" class="btn btn-ghost btn-sm" id="bloco-produtos-novo-abrir" hidden>Novo produto</button>
+      <span class="cap" id="produtos-total"></span>
+    </div>
+
+    <div id="bloco-produto-novo" hidden style="margin-top:14px">
+      <h4>Novo produto</h4>
+      <div id="produto-novo-campos"></div>
+    </div>
+
+    <p class="lead" id="produtos-msg" style="font-size:14px" role="status" aria-live="polite"></p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th scope="col"></th><th scope="col">Produto</th>
+          <th scope="col">Referência</th><th scope="col"></th>
+        </tr></thead>
+        <tbody id="tbody-produtos"></tbody>
+      </table>
+    </div>
+
+    <datalist id="lista-categorias"></datalist>
+    <datalist id="lista-marcas"></datalist>
   </div>
 
   <div class="block" id="bloco-backup" hidden>
@@ -1740,6 +1781,641 @@ function ajustar() {
 }
 window.addEventListener("vm:condos", ajustar);
 ajustar();
+})();
+
+</script>
+<script>
+/* ============================================================
+   Village 360 — Produtos no painel (03q/03r/03s/03t)
+
+   Pensado para o CELULAR: cadastrar, bipar o código de barras pela
+   câmera, pegar a foto da galeria, ver a prévia e salvar. A conversão
+   da imagem (WebP 800 para o app e 240 para o painel) acontece no
+   próprio aparelho — ninguém precisa converter arquivo à mão.
+
+   Quem pode o quê é decidido no banco:
+     · catálogo global (cadastro, imagem, ativo) → dono;
+     · preço, disponibilidade e promoção daquele prédio → quem pode o
+       condomínio selecionado.
+   A tela só esconde o que não adianta mostrar.
+   ============================================================ */
+(function () {
+"use strict";
+
+var LISTA = [];
+var ABERTO = null;
+var APOIO = { categorias: [], marcas: [], itens_pesquisa: [], unidades: ["g", "kg", "ml", "L", "un"] };
+var CONDO = null;
+var BUSCA = "";
+var IMG_BASE = null;
+
+var ERROS = {
+  sem_login: "Sua sessão expirou. Entre de novo.",
+  sem_permissao: "Esta conta não pode fazer isso.",
+  nome_invalido: "Escreva o nome do produto.",
+  unidade_invalida: "Escolha a unidade (g, kg, ml, L ou un).",
+  conteudo_invalido: "O peso/volume tem que ser maior que zero.",
+  ean_invalido: "Esse código de barras não confere. Bipe de novo ou deixe em branco.",
+  ean_em_uso: "Esse código de barras já está em outro produto.",
+  slug_em_uso: "Já existe um produto com esse mesmo endereço interno.",
+  preco_invalido: "Confira o preço.",
+  categoria_invalida: "Escolha ou escreva a categoria.",
+  item_pesquisa_invalido: "Item de pesquisa inválido.",
+  nao_encontrado: "Produto não encontrado.",
+  ja_tem_promocao: "Este produto já tem promoção ativa aqui. Encerre a atual antes.",
+  percentual_invalido: "O desconto tem que ser entre 1% e 90%.",
+  tipo_invalido: "Escolha desconto em % ou preço promocional.",
+  periodo_invalido: "A data de fim tem que ser depois da de início.",
+  sem_preco: "Defina um preço antes de criar promoção.",
+  dados_invalidos: "Confira os campos."
+};
+
+function el(id) { return document.getElementById(id); }
+function limpar(n) { while (n.firstChild) n.removeChild(n.firstChild); return n; }
+function txt(tag, cls, t) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (t !== undefined && t !== null) e.textContent = t;
+  return e;
+}
+function brl(v) {
+  if (v === null || v === undefined || v === "") return "—";
+  return "R$ " + Number(v).toFixed(2).replace(".", ",");
+}
+function msg(t, tipo) {
+  var m = el("produtos-msg");
+  m.textContent = t || "";
+  m.style.color = tipo === "erro" ? "var(--erro, #b3261e)" : "";
+}
+function erroDe(d) { return ERROS[(d || {}).erro] || "Não deu certo agora."; }
+function campo(pai, rotulo, id, valor, tipo, atrib) {
+  var f = txt("div", "field");
+  var l = txt("label", null, rotulo);
+  l.htmlFor = id;
+  var i = document.createElement(tipo === "select" ? "select" : "input");
+  i.id = id;
+  if (tipo !== "select") { i.type = tipo || "text"; i.autocomplete = "off"; }
+  if (atrib) Object.keys(atrib).forEach(function (k) { i.setAttribute(k, atrib[k]); });
+  if (tipo !== "select") i.value = (valor === null || valor === undefined) ? "" : String(valor);
+  f.appendChild(l); f.appendChild(i);
+  pai.appendChild(f);
+  return i;
+}
+function opcoes(sel, lista, valor, vazio) {
+  if (vazio) sel.appendChild(new Option(vazio, ""));
+  lista.forEach(function (o) { sel.appendChild(new Option(o.nome || o, o.id !== undefined ? o.id : o)); });
+  if (valor !== null && valor !== undefined) sel.value = String(valor);
+  return sel;
+}
+function urlImagem(id, tamanho) {
+  if (!IMG_BASE) return null;
+  return IMG_BASE + "/storage/v1/object/public/produtos/" + id + "/" + (tamanho || "card") + ".webp?v=" + Date.now();
+}
+
+/* ---------- lista ---------- */
+async function carregar() {
+  if (!window.VM_SB) return;
+  var r = await window.VM_SB.rpc("admin_catalogo_listar", { p_busca: BUSCA || null, p_limite: 100, p_pagina: 1 });
+  var d = r.data || {};
+  if (r.error || d.ok !== true) { desenharVazio(erroDe(d)); return; }
+  LISTA = d.produtos || [];
+  desenhar(d.total);
+}
+
+function desenharVazio(t) {
+  var corpo = limpar(el("tbody-produtos"));
+  var tr = txt("tr"), td = txt("td", null, t);
+  td.colSpan = 4; tr.appendChild(td); corpo.appendChild(tr);
+}
+
+function desenhar(total) {
+  var corpo = limpar(el("tbody-produtos"));
+  el("produtos-total").textContent = total ? (total + (total === 1 ? " produto" : " produtos")) : "";
+  if (!LISTA.length) { desenharVazio(BUSCA ? "Nada encontrado." : "Nenhum produto cadastrado ainda."); return; }
+  LISTA.forEach(function (p) {
+    var tr = txt("tr");
+
+    var tdImg = txt("td");
+    if (p.tem_imagem) {
+      var img = document.createElement("img");
+      img.src = urlImagem(p.id, "thumb");
+      img.alt = "";
+      img.width = 40; img.height = 40;
+      img.style.cssText = "width:40px;height:40px;object-fit:contain;border-radius:8px;background:var(--surface-2)";
+      tdImg.appendChild(img);
+    } else {
+      var vazio = txt("div", "cap", "sem foto");
+      vazio.style.cssText = "width:40px;height:40px;display:flex;align-items:center;justify-content:center;" +
+        "border:1px dashed var(--line);border-radius:8px;font-size:9px;text-align:center;line-height:1.1";
+      tdImg.appendChild(vazio);
+    }
+    tr.appendChild(tdImg);
+
+    var tdNome = txt("td");
+    tdNome.appendChild(txt("div", null, p.titulo));
+    tdNome.appendChild(txt("div", "cap", p.categoria + (p.ativo ? "" : " · inativo") + (p.ean ? " · " + p.ean : "")));
+    tr.appendChild(tdNome);
+
+    tr.appendChild(txt("td", null, brl(p.preco_referencia)));
+
+    var acao = txt("td");
+    var b = txt("button", "btn btn-ghost btn-sm", ABERTO === p.id ? "Fechar" : "Abrir");
+    b.type = "button";
+    b.addEventListener("click", function () { ABERTO = ABERTO === p.id ? null : p.id; msg(""); desenhar(total); });
+    acao.appendChild(b);
+    tr.appendChild(acao);
+    corpo.appendChild(tr);
+
+    if (ABERTO === p.id) {
+      var trD = txt("tr"), tdD = txt("td");
+      tdD.colSpan = 4;
+      tdD.appendChild(ficha(p));
+      trD.appendChild(tdD);
+      corpo.appendChild(trD);
+    }
+  });
+}
+
+/* ---------- ficha do produto ---------- */
+function ficha(p) {
+  var dono = window.VM_DONO === true;
+  var box = txt("div", "block");
+  box.style.margin = "0";
+  box.appendChild(txt("h4", null, p.titulo));
+
+  if (dono) {
+    box.appendChild(formulario(p));
+    box.appendChild(blocoImagem(p));
+  } else {
+    box.appendChild(txt("p", "cap", "Só o dono edita o cadastro e a imagem. Aqui você ajusta o que vale neste condomínio."));
+  }
+  if (CONDO) box.appendChild(blocoCondominio(p));
+  return box;
+}
+
+function formulario(p, novo) {
+  var f = txt("div");
+  var pref = novo ? "np-" : "p-";
+  var cat = campo(f, "Categoria", pref + "categoria", p.categoria, "text", { list: "lista-categorias" });
+  campo(f, "Marca (vazio se não tiver)", pref + "marca", p.marca, "text", { list: "lista-marcas" });
+  campo(f, "Produto", pref + "nome", p.nome, "text", { placeholder: "Original, Laranja, Laka…" });
+  campo(f, "Variante (opcional)", pref + "variante", p.variante, "text", { placeholder: "Branco, Zero…" });
+  campo(f, "Embalagem (opcional)", pref + "embalagem", p.embalagem, "text", { placeholder: "lata, pet, pacote…" });
+
+  var dupla = txt("div", "dupla");
+  var fc = txt("div", "field"); fc.style.margin = "0";
+  var lc = txt("label", null, "Peso/volume"); lc.htmlFor = pref + "conteudo";
+  var ic = document.createElement("input");
+  ic.id = pref + "conteudo"; ic.type = "number"; ic.step = "0.001"; ic.inputMode = "decimal";
+  ic.value = p.conteudo === undefined || p.conteudo === null ? "" : String(Number(p.conteudo));
+  fc.appendChild(lc); fc.appendChild(ic);
+  var fu = txt("div", "field"); fu.style.margin = "0";
+  var lu = txt("label", null, "Unidade"); lu.htmlFor = pref + "unidade";
+  var iu = document.createElement("select"); iu.id = pref + "unidade";
+  opcoes(iu, APOIO.unidades, p.unidade || "un");
+  fu.appendChild(lu); fu.appendChild(iu);
+  dupla.appendChild(fc); dupla.appendChild(fu);
+  f.appendChild(dupla);
+
+  /* EAN com botão de bipar */
+  var fe = txt("div", "field");
+  var le = txt("label", null, "Código de barras (opcional)"); le.htmlFor = pref + "ean";
+  var linha = txt("div", "dupla");
+  var ie = document.createElement("input");
+  ie.id = pref + "ean"; ie.type = "text"; ie.inputMode = "numeric"; ie.autocomplete = "off";
+  ie.placeholder = "bipe ou digite";
+  ie.value = p.ean || "";
+  var be = txt("button", "btn btn-ghost btn-sm", "Bipar");
+  be.type = "button";
+  be.addEventListener("click", function () { bipar(ie, be); });
+  linha.appendChild(ie); linha.appendChild(be);
+  fe.appendChild(le); fe.appendChild(linha);
+  f.appendChild(fe);
+
+  var dupla2 = txt("div", "dupla");
+  var fp = txt("div", "field"); fp.style.margin = "0";
+  var lp = txt("label", null, "Preço de referência"); lp.htmlFor = pref + "preco";
+  var ip = document.createElement("input");
+  ip.id = pref + "preco"; ip.type = "number"; ip.step = "0.01"; ip.inputMode = "decimal";
+  ip.value = p.preco_referencia === null || p.preco_referencia === undefined ? "" : String(p.preco_referencia);
+  fp.appendChild(lp); fp.appendChild(ip);
+  var fi = txt("div", "field"); fi.style.margin = "0";
+  var li = txt("label", null, "Item da pesquisa"); li.htmlFor = pref + "item";
+  var ii = document.createElement("select"); ii.id = pref + "item";
+  opcoes(ii, APOIO.itens_pesquisa, p.item_pesquisa_id || "", "— nenhum —");
+  fi.appendChild(li); fi.appendChild(ii);
+  dupla2.appendChild(fp); dupla2.appendChild(fi);
+  f.appendChild(dupla2);
+
+  var acoes = txt("div", "acoes");
+  acoes.style.marginTop = "12px";
+  var bs = txt("button", "btn btn-primary btn-sm", novo ? "Cadastrar produto" : "Salvar");
+  bs.type = "button";
+  bs.addEventListener("click", function () { salvar(p, novo, bs); });
+  acoes.appendChild(bs);
+  if (!novo) {
+    var ba = txt("button", "btn btn-ghost btn-sm", p.ativo ? "Inativar" : "Reativar");
+    ba.type = "button";
+    ba.addEventListener("click", function () { ativar(p, ba); });
+    acoes.appendChild(ba);
+  }
+  f.appendChild(acoes);
+  if (!novo && !p.ativo) f.appendChild(txt("p", "cap", "Produto inativo: sai de todos os condomínios. O cadastro e o histórico ficam."));
+  return f;
+}
+
+function valoresDo(pref) {
+  function v(id) { var e = el(pref + id); return e ? e.value.trim() : ""; }
+  var dados = {
+    categoria: v("categoria"), marca: v("marca"), nome: v("nome"),
+    variante: v("variante") || null, embalagem: v("embalagem") || null,
+    conteudo: Number(v("conteudo") || 0), unidade: v("unidade"),
+    ean: v("ean") || null,
+    preco_referencia: v("preco") === "" ? null : Number(v("preco")),
+    item_pesquisa: v("item") || null
+  };
+  return dados;
+}
+
+async function salvar(p, novo, botao) {
+  var dados = valoresDo(novo ? "np-" : "p-");
+  if (!novo) dados.id = p.id;
+  botao.disabled = true;
+  msg("Salvando…");
+  var r = await window.VM_SB.rpc("admin_produto_salvar", { p_dados: dados });
+  botao.disabled = false;
+  var d = r.data || {};
+  if (r.error || d.ok !== true) { msg(erroDe(d), "erro"); return; }
+  msg(d.criado ? "Produto cadastrado." : "Salvo.");
+  if (novo) { el("bloco-produto-novo").hidden = true; ABERTO = d.produto.id; }
+  await recarregarApoio();
+  carregar();
+}
+
+async function ativar(p, botao) {
+  botao.disabled = true;
+  var r = await window.VM_SB.rpc("admin_produto_ativar", { p_id: p.id, p_ativo: !p.ativo });
+  botao.disabled = false;
+  var d = r.data || {};
+  if (r.error || d.ok !== true) { msg(erroDe(d), "erro"); return; }
+  msg(d.produto.ativo ? "Produto reativado." : "Produto inativado: saiu de todos os condomínios, sem apagar nada.");
+  carregar();
+}
+
+/* ---------- imagem: galeria → prévia → WebP → Storage ---------- */
+function blocoImagem(p) {
+  var box = txt("div");
+  box.style.marginTop = "16px";
+  box.appendChild(txt("h4", null, "Imagem"));
+  box.appendChild(txt("p", "cap", "Escolha a foto da galeria do celular. O sistema recorta em quadrado, converte e guarda sozinho."));
+
+  var prev = txt("div");
+  prev.id = "img-previa";
+  prev.style.cssText = "margin-top:10px;display:flex;gap:12px;align-items:center";
+  if (p.tem_imagem) {
+    var img = document.createElement("img");
+    img.src = urlImagem(p.id, "card");
+    img.alt = "";
+    img.style.cssText = "width:96px;height:96px;object-fit:contain;border-radius:12px;background:var(--surface-2)";
+    prev.appendChild(img);
+  } else {
+    prev.appendChild(txt("div", "cap", "Sem imagem ainda."));
+  }
+  box.appendChild(prev);
+
+  var entrada = document.createElement("input");
+  entrada.type = "file";
+  entrada.accept = "image/*";
+  entrada.id = "img-arquivo";
+  entrada.style.display = "none";
+  entrada.addEventListener("change", function () { escolheu(p, entrada); });
+  box.appendChild(entrada);
+
+  var acoes = txt("div", "acoes");
+  acoes.style.marginTop = "12px";
+  var b = txt("button", "btn btn-primary btn-sm", p.tem_imagem ? "Trocar imagem" : "Adicionar imagem");
+  b.type = "button";
+  b.addEventListener("click", function () { entrada.click(); });
+  acoes.appendChild(b);
+  if (p.tem_imagem) {
+    var br = txt("button", "btn btn-ghost btn-sm", "Remover imagem");
+    br.type = "button";
+    br.addEventListener("click", function () { removerImagem(p, br); });
+    acoes.appendChild(br);
+  }
+  box.appendChild(acoes);
+  box.appendChild(txt("p", "lead", "")).id = "img-msg";
+  return box;
+}
+
+function imagemMsg(t, tipo) {
+  var m = el("img-msg");
+  if (!m) return;
+  m.style.fontSize = "14px";
+  m.textContent = t || "";
+  m.style.color = tipo === "erro" ? "var(--erro, #b3261e)" : "";
+}
+
+/* recorta no centro, redimensiona e devolve WebP */
+function paraWebp(imagem, lado) {
+  var c = document.createElement("canvas");
+  c.width = lado; c.height = lado;
+  var ctx = c.getContext("2d");
+  var min = Math.min(imagem.width, imagem.height);
+  var sx = (imagem.width - min) / 2, sy = (imagem.height - min) / 2;
+  ctx.drawImage(imagem, sx, sy, min, min, 0, 0, lado, lado);
+  return new Promise(function (resolve) {
+    c.toBlob(function (b) { resolve(b); }, "image/webp", 0.86);
+  });
+}
+
+async function escolheu(p, entrada) {
+  var arquivo = entrada.files && entrada.files[0];
+  entrada.value = "";
+  if (!arquivo) return;
+  if (!/^image\//.test(arquivo.type)) { imagemMsg("Isso não é uma imagem.", "erro"); return; }
+  imagemMsg("Preparando a imagem…");
+  var url = URL.createObjectURL(arquivo);
+  var img = new Image();
+  img.onload = async function () {
+    URL.revokeObjectURL(url);
+    try {
+      var card = await paraWebp(img, 800);
+      var thumb = await paraWebp(img, 240);
+      // prévia antes de gravar
+      var prev = limpar(el("img-previa"));
+      var pimg = document.createElement("img");
+      pimg.src = URL.createObjectURL(card);
+      pimg.style.cssText = "width:96px;height:96px;object-fit:contain;border-radius:12px;background:var(--surface-2)";
+      prev.appendChild(pimg);
+      prev.appendChild(txt("div", "cap", "Prévia — salvando…"));
+      await enviar(p, card, thumb);
+    } catch (e) {
+      imagemMsg("Não deu para preparar a imagem neste aparelho.", "erro");
+    }
+  };
+  img.onerror = function () { URL.revokeObjectURL(url); imagemMsg("Não consegui abrir essa imagem.", "erro"); };
+  img.src = url;
+}
+
+async function enviar(p, card, thumb) {
+  var sb = window.VM_SB;
+  var opcs = { upsert: true, contentType: "image/webp", cacheControl: "3600" };
+  var r1 = await sb.storage.from("produtos").upload(p.id + "/card.webp", card, opcs);
+  var r2 = await sb.storage.from("produtos").upload(p.id + "/thumb.webp", thumb, opcs);
+  if (r1.error || r2.error) {
+    imagemMsg("Não deu para enviar a imagem. Tente de novo.", "erro");
+    return;
+  }
+  var r = await sb.rpc("admin_produto_imagem", { p_id: p.id, p_tem: true });
+  if (r.error || !(r.data || {}).ok) { imagemMsg(erroDe(r.data), "erro"); return; }
+  imagemMsg("Imagem salva.");
+  carregar();
+}
+
+async function removerImagem(p, botao) {
+  if (!window.confirm("Remover a imagem de " + p.titulo + "?")) return;
+  botao.disabled = true;
+  var sb = window.VM_SB;
+  await sb.storage.from("produtos").remove([p.id + "/card.webp", p.id + "/thumb.webp"]);
+  var r = await sb.rpc("admin_produto_imagem", { p_id: p.id, p_tem: false });
+  botao.disabled = false;
+  if (r.error || !(r.data || {}).ok) { imagemMsg(erroDe(r.data), "erro"); return; }
+  imagemMsg("Imagem removida.");
+  carregar();
+}
+
+/* ---------- bipar o código de barras ---------- */
+async function bipar(campoEan, botao) {
+  if (!("BarcodeDetector" in window)) {
+    msg("Este aparelho não lê código de barras pelo navegador. Digite o número.", "erro");
+    return;
+  }
+  var video = document.createElement("video");
+  video.setAttribute("playsinline", "true");
+  video.style.cssText = "width:100%;max-width:420px;border-radius:12px;margin-top:10px";
+  var parar = txt("button", "btn btn-ghost btn-sm", "Cancelar");
+  parar.type = "button";
+  var caixa = txt("div");
+  caixa.style.marginTop = "10px";
+  caixa.appendChild(video);
+  caixa.appendChild(parar);
+  botao.parentNode.parentNode.appendChild(caixa);
+
+  var fluxo;
+  var vivo = true;
+  function fechar() {
+    vivo = false;
+    if (fluxo) fluxo.getTracks().forEach(function (t) { t.stop(); });
+    if (caixa.parentNode) caixa.parentNode.removeChild(caixa);
+  }
+  parar.addEventListener("click", fechar);
+
+  try {
+    fluxo = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+  } catch (e) {
+    fechar();
+    msg("Não consegui abrir a câmera. Autorize o acesso ou digite o número.", "erro");
+    return;
+  }
+  video.srcObject = fluxo;
+  await video.play();
+  var leitor = new window.BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e", "itf"] });
+  (async function laco() {
+    while (vivo) {
+      try {
+        var achados = await leitor.detect(video);
+        if (achados && achados.length) {
+          campoEan.value = achados[0].rawValue.replace(/[^0-9]/g, "");
+          msg("Código lido: confira na embalagem antes de salvar.");
+          fechar();
+          return;
+        }
+      } catch (e) { /* segue tentando */ }
+      await new Promise(function (r) { setTimeout(r, 250); });
+    }
+  })();
+}
+
+/* ---------- o que vale neste condomínio ---------- */
+function blocoCondominio(p) {
+  var box = txt("div");
+  box.style.marginTop = "18px";
+  box.appendChild(txt("h4", null, "Neste condomínio — " + (CONDO.nome || "")));
+
+  var atual = (p.preco_condominio === undefined) ? null : p.preco_condominio;
+  var dupla = txt("div", "dupla");
+  var fp = txt("div", "field"); fp.style.margin = "0";
+  var lp = txt("label", null, "Preço aqui (vazio = usa o de referência)"); lp.htmlFor = "pc-preco";
+  var ip = document.createElement("input");
+  ip.id = "pc-preco"; ip.type = "number"; ip.step = "0.01"; ip.inputMode = "decimal";
+  ip.value = atual === null || atual === undefined ? "" : String(atual);
+  fp.appendChild(lp); fp.appendChild(ip);
+  var fd = txt("div", "field"); fd.style.margin = "0";
+  var ld = txt("label", null, "Disponível aqui"); ld.htmlFor = "pc-disp";
+  var id = document.createElement("select");
+  id.id = "pc-disp";
+  id.appendChild(new Option("Segue o geral", ""));
+  id.appendChild(new Option("Sim", "true"));
+  id.appendChild(new Option("Não", "false"));
+  id.value = (p.excecao_disponivel === null || p.excecao_disponivel === undefined) ? "" : String(p.excecao_disponivel);
+  fd.appendChild(ld); fd.appendChild(id);
+  dupla.appendChild(fp); dupla.appendChild(fd);
+  box.appendChild(dupla);
+
+  var acoes = txt("div", "acoes");
+  acoes.style.marginTop = "12px";
+  var b = txt("button", "btn btn-primary btn-sm", "Salvar para este condomínio");
+  b.type = "button";
+  b.addEventListener("click", function () { salvarCondo(p, b); });
+  acoes.appendChild(b);
+  box.appendChild(acoes);
+
+  var resumo = txt("p", "cap",
+    "Preço em uso aqui: " + brl(p.preco) +
+    (p.promocao ? " (promoção, normal " + brl(p.preco_normal) + ")" : "") +
+    (p.de_referencia ? " — vindo do preço de referência" : ""));
+  resumo.style.marginTop = "10px";
+  box.appendChild(resumo);
+
+  box.appendChild(blocoPromocao(p));
+  return box;
+}
+
+async function salvarCondo(p, botao) {
+  var preco = el("pc-preco").value.trim();
+  var disp = el("pc-disp").value;
+  botao.disabled = true;
+  var r = await window.VM_SB.rpc("admin_produto_condominio", {
+    p_condominio: CONDO.id, p_produto: p.id,
+    p_dados: { preco: preco === "" ? null : Number(preco), disponivel: disp === "" ? null : (disp === "true") }
+  });
+  botao.disabled = false;
+  var d = r.data || {};
+  if (r.error || d.ok !== true) { msg(erroDe(d), "erro"); return; }
+  msg("Salvo para " + (CONDO.nome || "este condomínio") + ".");
+  carregarCondo();
+}
+
+function blocoPromocao(p) {
+  var box = txt("div");
+  box.style.marginTop = "16px";
+  box.appendChild(txt("h4", null, "Promoção aqui"));
+  if (p.promocao) {
+    var t = p.promocao.tipo === "percentual"
+      ? (Number(p.promocao.percentual) + "% de desconto")
+      : ("preço promocional de " + brl(p.promocao.preco_fixo));
+    box.appendChild(txt("p", "cap", "Ativa: " + t + " — sai por " + brl(p.preco) +
+      (p.promocao.termina_em ? " até " + new Date(p.promocao.termina_em).toLocaleDateString("pt-BR") : "")));
+    var be = txt("button", "btn btn-ghost btn-sm", "Encerrar promoção");
+    be.type = "button";
+    be.addEventListener("click", function () { encerrar(p.promocao.id, be); });
+    box.appendChild(be);
+    return box;
+  }
+  var dupla = txt("div", "dupla");
+  var ft = txt("div", "field"); ft.style.margin = "0";
+  var lt = txt("label", null, "Tipo"); lt.htmlFor = "promo-tipo";
+  var it = document.createElement("select");
+  it.id = "promo-tipo";
+  it.appendChild(new Option("Desconto em %", "percentual"));
+  it.appendChild(new Option("Preço promocional fixo", "preco_fixo"));
+  ft.appendChild(lt); ft.appendChild(it);
+  var fv = txt("div", "field"); fv.style.margin = "0";
+  var lv = txt("label", null, "Valor"); lv.htmlFor = "promo-valor";
+  var iv = document.createElement("input");
+  iv.id = "promo-valor"; iv.type = "number"; iv.step = "0.01"; iv.inputMode = "decimal";
+  iv.placeholder = "20 (%) ou 7,99 (R$)";
+  fv.appendChild(lv); fv.appendChild(iv);
+  dupla.appendChild(ft); dupla.appendChild(fv);
+  box.appendChild(dupla);
+
+  var ffim = campo(box, "Termina em (opcional)", "promo-fim", "", "date");
+  var b = txt("button", "btn btn-primary btn-sm", "Criar promoção");
+  b.type = "button";
+  b.style.marginTop = "12px";
+  b.addEventListener("click", function () { criarPromo(p, b); });
+  box.appendChild(b);
+  box.appendChild(txt("p", "cap", "Em % o preço promocional acompanha o preço normal. Em valor fixo, ele fica parado até você mudar."));
+  return box;
+}
+
+async function criarPromo(p, botao) {
+  var tipo = el("promo-tipo").value;
+  var valor = Number(el("promo-valor").value || 0);
+  var fim = el("promo-fim").value;
+  var dados = { tipo: tipo };
+  if (tipo === "percentual") dados.percentual = valor; else dados.preco_fixo = valor;
+  if (fim) dados.termina_em = fim + "T23:59:59";
+  botao.disabled = true;
+  var r = await window.VM_SB.rpc("admin_promocao_criar", { p_condominio: CONDO.id, p_produto: p.id, p_dados: dados });
+  botao.disabled = false;
+  var d = r.data || {};
+  if (r.error || d.ok !== true) { msg(erroDe(d), "erro"); return; }
+  msg("Promoção criada. O app do morador já mostra.");
+  carregarCondo();
+}
+
+async function encerrar(id, botao) {
+  botao.disabled = true;
+  var r = await window.VM_SB.rpc("admin_promocao_encerrar", { p_id: id });
+  botao.disabled = false;
+  var d = r.data || {};
+  if (r.error || d.ok !== true) { msg(erroDe(d), "erro"); return; }
+  msg("Promoção encerrada.");
+  carregarCondo();
+}
+
+/* ---------- carga do condomínio (preço/disponibilidade/promoção) ---------- */
+async function carregarCondo() {
+  if (!CONDO || !window.VM_SB) { carregar(); return; }
+  var r = await window.VM_SB.rpc("admin_condominio_catalogo", {
+    p_condominio: CONDO.id, p_busca: BUSCA || null, p_limite: 100, p_pagina: 1
+  });
+  var d = r.data || {};
+  if (r.error || d.ok !== true) { carregar(); return; }
+  LISTA = d.produtos || [];
+  desenhar(LISTA.length);
+}
+
+async function recarregarApoio() {
+  var r = await window.VM_SB.rpc("admin_catalogo_apoio");
+  var d = r.data || {};
+  if (r.error || d.ok !== true) return;
+  APOIO = d;
+  var lc = limpar(el("lista-categorias"));
+  (d.categorias || []).forEach(function (c) { lc.appendChild(new Option(c.nome)); });
+  var lm = limpar(el("lista-marcas"));
+  (d.marcas || []).forEach(function (m) { lm.appendChild(new Option(m.nome)); });
+  el("bloco-produtos-novo-abrir").hidden = d.dono !== true;
+}
+
+/* ---------- entrada ---------- */
+el("btn-produto-buscar").addEventListener("click", function () { BUSCA = el("f-produto-busca").value.trim(); ABERTO = null; carregarCondo(); });
+el("f-produto-busca").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") { BUSCA = this.value.trim(); ABERTO = null; carregarCondo(); }
+});
+el("bloco-produtos-novo-abrir").addEventListener("click", function () {
+  var bloco = el("bloco-produto-novo");
+  bloco.hidden = !bloco.hidden;
+  if (!bloco.hidden) {
+    var caixa = limpar(el("produto-novo-campos"));
+    caixa.appendChild(formulario({ unidade: "un" }, true));
+  }
+});
+
+window.addEventListener("vm:condo", function (e) {
+  CONDO = e.detail || null;
+  if (window.VM_CONFIG && window.VM_CONFIG.SUPABASE_URL) IMG_BASE = window.VM_CONFIG.SUPABASE_URL;
+  ABERTO = null;
+  msg("");
+  recarregarApoio().then(carregarCondo);
+});
+if (window.VM_CONDO) {
+  CONDO = window.VM_CONDO;
+  if (window.VM_CONFIG && window.VM_CONFIG.SUPABASE_URL) IMG_BASE = window.VM_CONFIG.SUPABASE_URL;
+  recarregarApoio().then(carregarCondo);
+}
 })();
 
 </script>

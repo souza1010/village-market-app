@@ -603,3 +603,37 @@ textarea{min-height:120px; resize:vertical; line-height:1.55}
 .vit-selo{display:inline-flex; font-size:10.5px; font-weight:700; letter-spacing:.04em;
   text-transform:uppercase; padding:3px 8px; border-radius:99px;
   background:var(--amber-soft); color:var(--amber); align-self:flex-start}
+
+/* ---------- catálogo completo (tela própria, fora das abas) ----------
+   Só classes novas com prefixo cat-: nada aqui reescreve regra de tela
+   já aprovada. O grid é o mesmo .vitrine da Home. */
+.visuoculto{position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0}
+.cat-cap{font-size:13.5px; color:var(--muted); line-height:1.5}
+.btn-voltar{display:inline-flex; align-items:center; gap:4px; background:none; border:0;
+  color:var(--muted); font:inherit; font-size:14px; padding:8px 8px 8px 0; margin-bottom:2px;
+  cursor:pointer; min-height:44px}
+.btn-voltar svg{fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
+.btn-voltar:hover{color:var(--ink)}
+
+.cat-busca{position:relative; margin-top:var(--e4)}
+.cat-busca input{width:100%; min-height:48px; padding:12px 40px 12px 14px;
+  background:var(--surface); border:1px solid var(--line); border-radius:14px;
+  font:inherit; font-size:16px; color:var(--ink)}
+.cat-busca input::-webkit-search-cancel-button{display:none}
+.cat-busca input:focus-visible{outline:2px solid var(--brand); outline-offset:1px}
+.cat-limpar{position:absolute; right:4px; top:50%; transform:translateY(-50%);
+  width:40px; height:40px; background:none; border:0; color:var(--faint);
+  font-size:22px; line-height:1; cursor:pointer; border-radius:99px}
+.cat-limpar:hover{color:var(--ink)}
+
+.cat-chips{display:flex; gap:8px; overflow-x:auto; padding:2px 0 4px;
+  margin-top:var(--e3); scrollbar-width:none; -webkit-overflow-scrolling:touch}
+.cat-chips::-webkit-scrollbar{display:none}
+.cat-chip{flex:0 0 auto; min-height:44px; padding:10px 14px; border-radius:99px;
+  background:var(--surface); border:1px solid var(--line); color:var(--muted);
+  font:inherit; font-size:13.5px; white-space:nowrap; cursor:pointer}
+.cat-chip[aria-pressed="true"]{background:var(--brand); border-color:var(--brand); color:#fff; font-weight:600}
+
+.cat-vazio, .cat-fim{margin-top:var(--e5); text-align:center}
+.cat-carregando{opacity:.55; transition:opacity .15s}

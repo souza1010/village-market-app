@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!-- CSP (PROMPT 039). O montar.py acrescenta a esta politica o hash de cada
      script embutido e para o build se faltar algum. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-9HOkhKKj24JmNMgHoXNN1MVv2VfGv04KP3SbzD0tH+c=' 'sha256-1nLWLa+af46Fk0ZkL6c3MLIaO3zRjbxmGpo5yLIq++0=' 'sha256-XPGqYwULTTOb0mRe81xQdRsitjnQOHmLGOkmJj4Zt6U=' 'sha256-T3xLmSVglxYgsXvfA2eChNvoly6RLFejVtQbz5puQKI=' 'sha256-ZnmZbzi0hU6Lluec1ttVYxLxfwzodXuncpwM168f6GA=' 'sha256-5vLviNzSx6fGZd2PmEmK69Q5uA9LLxehj7krHAM/j60=' 'sha256-OpvEZR8XAnU/muAsEc2qiENLon4IEv7YagafXWQMICs=' 'sha256-J2Cuflya2aPlSmCiQo9OCKm4Lls5vdrGpbuGY3A75c0=' 'sha256-WaeQXOYQP4+RRHh7mYHaaATwhmYxHSvOOUi2sX860uA=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://przmqczdchshmcivcbbg.supabase.co; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-9HOkhKKj24JmNMgHoXNN1MVv2VfGv04KP3SbzD0tH+c=' 'sha256-1nLWLa+af46Fk0ZkL6c3MLIaO3zRjbxmGpo5yLIq++0=' 'sha256-XPGqYwULTTOb0mRe81xQdRsitjnQOHmLGOkmJj4Zt6U=' 'sha256-T3xLmSVglxYgsXvfA2eChNvoly6RLFejVtQbz5puQKI=' 'sha256-ZnmZbzi0hU6Lluec1ttVYxLxfwzodXuncpwM168f6GA=' 'sha256-5vLviNzSx6fGZd2PmEmK69Q5uA9LLxehj7krHAM/j60=' 'sha256-OpvEZR8XAnU/muAsEc2qiENLon4IEv7YagafXWQMICs=' 'sha256-J2Cuflya2aPlSmCiQo9OCKm4Lls5vdrGpbuGY3A75c0=' 'sha256-BJrlmmcmQVVAbNlWyEEpLYdRq2Hhup4leKjlU3Jdfm0=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://przmqczdchshmcivcbbg.supabase.co; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Village Market — Painel</title>
 <meta name="robots" content="noindex">
@@ -2752,9 +2752,21 @@ function formulario(p, novo) {
   fo.appendChild(lo); fo.appendChild(io);
   dupla3.appendChild(fq); dupla3.appendChild(fo);
   f.appendChild(dupla3);
+
+  /* destaque: o que aparece na seleção curta da Home do morador */
+  var fd = txt("div", "field");
+  var ld = txt("label", null, "Aparece na Home?"); ld.htmlFor = pref + "destaque";
+  var id_ = document.createElement("select"); id_.id = pref + "destaque";
+  opcoes(id_, [{ id: "nao", nome: "Não" }, { id: "sim", nome: "Sim — destacar" }],
+         p.destaque ? "sim" : "nao", null);
+  fd.appendChild(ld); fd.appendChild(id_);
+  f.appendChild(fd);
+
   f.appendChild(txt("p", "cap", "Menor número aparece primeiro; empate resolve por ordem alfabética. "
     + "A ordem já vale na vitrine do app. “Entra na pesquisa” fica guardado para quando a "
-    + "pesquisa passar a ler o catálogo — hoje ela ainda usa a lista fixa de 31 itens."));
+    + "pesquisa passar a ler o catálogo — hoje ela ainda usa a lista fixa de 31 itens. "
+    + "“Aparece na Home” coloca o produto na seleção curta que o morador vê antes de "
+    + "“Ver todos os produtos”. Quem está em promoção entra na frente, sem precisar marcar."));
 
   var acoes = txt("div", "acoes");
   acoes.style.marginTop = "12px";
@@ -2783,6 +2795,7 @@ function valoresDo(pref) {
     preco_referencia: v("preco") === "" ? null : Number(v("preco")),
     item_pesquisa: v("item") || null,
     participa_pesquisa: v("participa") === "sim",
+    destaque: v("destaque") === "sim",
     ordem: v("ordem") === "" ? 0 : Number(v("ordem"))
   };
   return dados;

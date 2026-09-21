@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!-- CSP (PROMPT 039). O montar.py acrescenta a esta politica o hash de cada
      script embutido e para o build se faltar algum. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-5C75MvB3ZmQHGPtFQI9BB9sBrMKfthIzBuDpJFOuXQ8=' 'sha256-olv7YklSoMKulgCpB+eb+9jZP0tR4MzWhuoAdATJ+NM=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://przmqczdchshmcivcbbg.supabase.co; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-5C75MvB3ZmQHGPtFQI9BB9sBrMKfthIzBuDpJFOuXQ8=' 'sha256-DmVCMrRG4Hx5GomDZvZ80gkwRdcYm5h/TuTHadjclVM=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://przmqczdchshmcivcbbg.supabase.co; connect-src 'self' https://przmqczdchshmcivcbbg.supabase.co wss://przmqczdchshmcivcbbg.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Village Market</title>
 <meta name="description" content="O mercado do seu condomínio: peça o que faltou, fale com a gente e acompanhe seu cupom.">
@@ -102,9 +102,10 @@
 
     <section class="secao" id="vitrine-secao" hidden aria-labelledby="vitrine-titulo">
       <p class="secao-olho calmo">No seu prédio</p>
-      <h3 id="vitrine-titulo">O que tem na prateleira</h3>
+      <h3 id="vitrine-titulo">Produtos no seu Village</h3>
       <p class="secao-sub">Preços deste condomínio. Promoção aparece destacada.</p>
       <div class="vitrine" id="vitrine"></div>
+      <button type="button" class="btn btn-ghost btn-cheio" id="ver-todos" hidden>Ver todos os produtos</button>
     </section>
 
 
@@ -131,6 +132,35 @@
       <p>Instale na tela do celular para abrir num toque.</p>
       <button type="button" class="btn btn-ghost btn-sm" id="btn-instalar">Instalar</button>
     </div>
+  </section>
+
+  <!-- ====== CATÁLOGO COMPLETO ======
+       Não é aba: chega-se por "Ver todos os produtos", na Home, e a aba
+       Início continua marcada. A navegação inferior aprovada não muda. -->
+  <section class="tabpane" id="pane-catalogo" hidden aria-labelledby="cat-titulo">
+    <div class="pane-head">
+      <button type="button" class="btn-voltar" id="cat-voltar" aria-label="Voltar para o Início">
+        <svg viewBox="0 0 24 24" aria-hidden="true" width="18" height="18"><path d="M15 5l-7 7 7 7"/></svg>
+        Início
+      </button>
+      <h2 id="cat-titulo">Produtos no seu Village</h2>
+      <p class="cat-cap" id="cat-resumo">&nbsp;</p>
+    </div>
+
+    <div class="cat-busca">
+      <label class="visuoculto" for="cat-q">Buscar produto</label>
+      <input id="cat-q" type="search" inputmode="search" autocomplete="off" spellcheck="false"
+             placeholder="Buscar por produto ou marca" enterkeyhint="search">
+      <button type="button" class="cat-limpar" id="cat-limpar" hidden aria-label="Limpar busca">&times;</button>
+    </div>
+
+    <div class="cat-chips" id="cat-chips" role="group" aria-label="Categorias"></div>
+
+    <div class="vitrine" id="cat-grade"></div>
+    <p class="cat-cap cat-vazio" id="cat-vazio" hidden>Nada encontrado com esse texto.</p>
+
+    <button type="button" class="btn btn-ghost btn-cheio" id="cat-mais" hidden>Ver mais produtos</button>
+    <p class="cat-cap cat-fim" id="cat-fim" hidden>Fim da lista.</p>
   </section>
 
   <!-- ====== FALTOU ====== -->
@@ -510,7 +540,13 @@ function irPara(alvo, forcarIdent) {
   }
   ABA = alvo;
   mostrarPane(alvo);
-  marcarTab(alvo);
+  marcarTab(alvo === "catalogo" ? "inicio" : alvo);
+  if (alvo === "catalogo") {
+    try { abrirCatalogo(); }
+    catch (e) { if (window.console) console.error("abrirCatalogo falhou:", e); }
+    window.scrollTo({ top: 0, behavior: "instant" });
+    return;
+  }
   if (alvo === "inicio")   renderInicio();
   if (alvo === "faltou")   carregarRank();
   if (alvo === "meus")     carregarMeus();
@@ -520,7 +556,7 @@ function irPara(alvo, forcarIdent) {
 var PENDENTE = null;
 
 function mostrarPane(nome) {
-  ["eu"].concat(ABAS).forEach(function (a) {
+  ["eu", "catalogo"].concat(ABAS).forEach(function (a) {
     var p = el("pane-" + a);
     if (p) p.hidden = (a !== nome);
   });
@@ -724,43 +760,201 @@ function reais(v) {
   return "R$ " + Number(v).toFixed(2).replace(".", ",");
 }
 
+/* Um card só, usado pela Home e pela tela do catálogo — para os dois
+   lugares mudarem juntos quando a foto chegar. */
+function cardProduto(p) {
+  var base = (window.VM_CONFIG || {}).SUPABASE_URL;
+  var card = txt("article", "vit-card");
+  if (p.imagem && base) {
+    var img = document.createElement("img");
+    img.className = "vit-foto";
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.alt = "";
+    img.src = base + "/storage/v1/object/public/produtos/" + p.imagem + "/card.webp";
+    card.appendChild(img);
+  } else {
+    card.appendChild(txt("div", "vit-sem-foto", "sem foto ainda"));
+  }
+  if (p.promocao) card.appendChild(txt("span", "vit-selo",
+    p.promocao.tipo === "percentual" ? ("-" + Math.round(p.promocao.desconto) + "%") : "promoção"));
+  card.appendChild(txt("p", "vit-nome", p.titulo));
+  var preco = txt("div", "vit-preco");
+  if (p.preco === null || p.preco === undefined) {
+    preco.appendChild(txt("span", "cap", "preço na prateleira"));
+  } else {
+    preco.appendChild(txt("b", null, reais(p.preco)));
+    if (p.promocao && p.preco_normal && Number(p.preco_normal) > Number(p.preco)) {
+      preco.appendChild(txt("span", "vit-antes", reais(p.preco_normal)));
+    }
+  }
+  card.appendChild(preco);
+  return card;
+}
+
+/* A Home mostra uma SELEÇÃO CURTA, não o catálogo inteiro: primeiro o que
+   está em promoção, depois o que o dono destacou, depois o que o prédio
+   curou. O resto fica atrás de "Ver todos os produtos". */
+var HOME_QUANTOS = 8;
+
 async function carregarVitrine() {
   var secao = el("vitrine-secao");
   if (!sb || !SLUG || !secao) return;
-  var r = await resposta(sb.rpc("vitrine_condominio", { p_slug: SLUG }));
+  var r = await resposta(sb.rpc("vitrine_home", { p_slug: SLUG, p_limite: HOME_QUANTOS }));
   var d = (r && r.dados) || {};
   if (d.ok !== true || !d.produtos || !d.produtos.length) { secao.hidden = true; return; }
   var caixa = limpar(el("vitrine"));
-  var base = (window.VM_CONFIG || {}).SUPABASE_URL;
-  d.produtos.forEach(function (p) {
-    var card = txt("article", "vit-card");
-    if (p.imagem && base) {
-      var img = document.createElement("img");
-      img.className = "vit-foto";
-      img.loading = "lazy";
-      img.alt = "";
-      img.src = base + "/storage/v1/object/public/produtos/" + p.imagem + "/card.webp";
-      card.appendChild(img);
-    } else {
-      card.appendChild(txt("div", "vit-sem-foto", "sem foto ainda"));
-    }
-    if (p.promocao) card.appendChild(txt("span", "vit-selo",
-      p.promocao.tipo === "percentual" ? ("-" + Math.round(p.promocao.desconto) + "%") : "promoção"));
-    card.appendChild(txt("p", "vit-nome", p.titulo));
-    var preco = txt("div", "vit-preco");
-    if (p.preco === null || p.preco === undefined) {
-      preco.appendChild(txt("span", "cap", "preço na prateleira"));
-    } else {
-      preco.appendChild(txt("b", null, reais(p.preco)));
-      if (p.promocao && p.preco_normal && Number(p.preco_normal) > Number(p.preco)) {
-        preco.appendChild(txt("span", "vit-antes", reais(p.preco_normal)));
-      }
-    }
-    card.appendChild(preco);
-    caixa.appendChild(card);
-  });
+  d.produtos.forEach(function (p) { caixa.appendChild(cardProduto(p)); });
+
+  var btn = el("ver-todos");
+  if (btn) {
+    var sobra = Number(d.total || 0);
+    btn.hidden = sobra <= d.produtos.length;
+    btn.textContent = "Ver todos os produtos" + (sobra ? " (" + sobra + ")" : "");
+  }
   secao.hidden = false;
 }
+
+
+/* ---------- a tela do catálogo completo ----------
+   Pensada para centenas de produtos: o banco pagina, busca e filtra;
+   o celular nunca recebe a lista inteira de uma vez. */
+var CATALOGO = { busca: "", categoria: null, pagina: 1, paginas: 1, total: 0, carregando: false, chips: false };
+var CAT_POR_PAGINA = 24;
+var catTimer = null;
+
+function abrirCatalogo() {
+  CATALOGO.busca = "";
+  CATALOGO.categoria = null;
+  CATALOGO.chips = false;
+  var q = el("cat-q");
+  if (q) q.value = "";
+  var limpar_ = el("cat-limpar");
+  if (limpar_) limpar_.hidden = true;
+  catBuscar(1, true);
+}
+
+function catResumo() {
+  var r = el("cat-resumo");
+  if (!r) return;
+  if (CATALOGO.carregando && !CATALOGO.total) { r.textContent = "Carregando…"; return; }
+  if (!CATALOGO.total) { r.textContent = "Nenhum produto por aqui."; return; }
+  var quantos = CATALOGO.total === 1 ? "1 produto" : CATALOGO.total + " produtos";
+  r.textContent = quantos + (CATALOGO.categoria ? " em " + CATALOGO.categoria : "") +
+                  (CATALOGO.busca ? " para “" + CATALOGO.busca + "”" : "");
+}
+
+function catChips(lista) {
+  var caixa = el("cat-chips");
+  if (!caixa || CATALOGO.chips) return;      // a lista de categorias não muda
+  limpar(caixa);
+  var todos = txt("button", "cat-chip", "Todos");
+  todos.type = "button";
+  todos.setAttribute("aria-pressed", CATALOGO.categoria ? "false" : "true");
+  todos.addEventListener("click", function () { CATALOGO.categoria = null; catMarcarChips(); catBuscar(1); });
+  caixa.appendChild(todos);
+  (lista || []).forEach(function (c) {
+    var b = txt("button", "cat-chip", c.nome + " · " + c.n);
+    b.type = "button";
+    b.dataset.cat = c.nome;
+    b.setAttribute("aria-pressed", CATALOGO.categoria === c.nome ? "true" : "false");
+    b.addEventListener("click", function () {
+      CATALOGO.categoria = (CATALOGO.categoria === c.nome) ? null : c.nome;
+      catMarcarChips();
+      catBuscar(1);
+    });
+    caixa.appendChild(b);
+  });
+  CATALOGO.chips = true;
+}
+
+function catMarcarChips() {
+  var caixa = el("cat-chips");
+  if (!caixa) return;
+  Array.prototype.forEach.call(caixa.children, function (b) {
+    var meu = b.dataset.cat || null;
+    b.setAttribute("aria-pressed", meu === CATALOGO.categoria ? "true" : "false");
+  });
+}
+
+async function catBuscar(pagina, primeira) {
+  try { await catBuscarInterno(pagina, primeira); }
+  catch (e) { if (window.console) console.error("catBuscar falhou:", e); }
+}
+
+async function catBuscarInterno(pagina, primeira) {
+  if (!sb || !SLUG) { if (window.console) console.warn("catBuscar sem sb/SLUG", !!sb, SLUG); return; }
+  var grade = el("cat-grade");
+  if (!grade) { if (window.console) console.warn("catBuscar sem #cat-grade"); return; }
+  CATALOGO.carregando = true;
+  CATALOGO.pagina = pagina;
+  if (pagina === 1) { limpar(grade); el("cat-fim").hidden = true; }
+  grade.classList.add("cat-carregando");
+  el("cat-mais").hidden = true;
+  el("cat-vazio").hidden = true;
+  if (primeira) catResumo();
+
+  var r = await resposta(sb.rpc("vitrine_buscar", {
+    p_slug: SLUG,
+    p_busca: CATALOGO.busca || null,
+    p_categoria: CATALOGO.categoria || null,
+    p_pagina: pagina,
+    p_tamanho: CAT_POR_PAGINA
+  }));
+  var d = (r && r.dados) || {};
+  grade.classList.remove("cat-carregando");
+  CATALOGO.carregando = false;
+  if (d.ok !== true) {
+    // falhar calado esconde defeito: deixa o motivo no console
+    if (window.console) console.warn("vitrine_buscar não respondeu:", (r && r.erro) || d);
+    el("cat-vazio").hidden = false;
+    catResumo();
+    return;
+  }
+
+  CATALOGO.total = Number(d.total || 0);
+  CATALOGO.paginas = Number(d.paginas || 1);
+  catChips(d.categorias);
+  (d.produtos || []).forEach(function (p) { grade.appendChild(cardProduto(p)); });
+  catResumo();
+
+  el("cat-vazio").hidden = CATALOGO.total !== 0;
+  el("cat-mais").hidden = pagina >= CATALOGO.paginas;
+  el("cat-fim").hidden = !(CATALOGO.total > CAT_POR_PAGINA && pagina >= CATALOGO.paginas);
+}
+
+(function ligarCatalogo() {
+  var ver = el("ver-todos");
+  if (ver) ver.addEventListener("click", function () { irPara("catalogo"); });
+  var voltar = el("cat-voltar");
+  if (voltar) voltar.addEventListener("click", function () { irPara("inicio"); });
+  var mais = el("cat-mais");
+  if (mais) mais.addEventListener("click", function () { catBuscar(CATALOGO.pagina + 1); });
+
+  var q = el("cat-q"), limpaBtn = el("cat-limpar");
+  if (q) {
+    q.addEventListener("input", function () {
+      if (limpaBtn) limpaBtn.hidden = !q.value;
+      clearTimeout(catTimer);
+      catTimer = setTimeout(function () {
+        CATALOGO.busca = q.value.trim();
+        catBuscar(1);
+      }, 280);                       // não dispara uma busca por tecla
+    });
+    q.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter") { ev.preventDefault(); q.blur(); }
+    });
+  }
+  if (limpaBtn) {
+    limpaBtn.addEventListener("click", function () {
+      q.value = "";
+      limpaBtn.hidden = true;
+      CATALOGO.busca = "";
+      catBuscar(1);
+      q.focus();
+    });
+  }
+})();
 
 /* quem é você */
 function renderChip() {
